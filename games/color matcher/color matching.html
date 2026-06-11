@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Glass Color Sort Game</title>
+    <style>
+        /* --- CORE RESET & CENTER ALIGNMENT --- */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a2e;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;      /* Rata tengah horizontal */
+            justify-content: center;  /* Rata tengah vertikal */
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        h1 {
+            margin: 0 0 15px 0;
+            color: #4ecca3;
+            text-align: center;
+            font-size: 1.8rem;
+            width: 100%;
+        }
+
+        /* --- MAIN MENU SCREEN (RATA TENGAH) --- */
+        .menu-screen {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 35px 25px;
+            border-radius: 15px;
+            border: 2px solid #4ecca3;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Rata tengah konten menu */
+            justify-content: center;
+            text-align: center;
+            box-shadow: 0 15px 25px rgba(0,0,0,0.5);
+            max-width: 360px;
+            width: 100%;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .menu-screen p {
+            color: #eeeeee;
+            margin-bottom: 25px;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            text-align: center; /* Dropdown pilihan level rata tengah */
+            width: 100%;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #4ecca3;
+            font-size: 0.95rem;
+        }
+
+        select {
+            width: 100%;
+            max-width: 280px;
+            background-color: #232946;
+            color: white;
+            border: 2px solid #4ecca3;
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            outline: none;
+            text-align: center;
+            text-align-last: center; /* Memastikan teks di dalam dropdown rata tengah */
+        }
+
+        /* --- GAMEPLAY SCREEN (RATA TENGAH) --- */
+        .game-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center; /* Semua elemen gameplay berbaris di tengah */
+            justify-content: center;
+            width: 100%;
+            max-width: 500px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            width: 100%;
+            max-width: 340px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #4ecca3;
+            text-align: center;
+        }
+
+        .stat-box span {
+            font-weight: bold;
+            color: #4ecca3;
+        }
+
+        .controls {
+            margin-bottom: 25px;
+            display: flex;
+            gap: 15px;
+            width: 100%;
+            max-width: 340px;
+            justify-content: center;
+        }
+
+        .controls .btn {
+            flex: 1;
+            padding: 12px;
+            font-size: 14px;
+        }
+
+        /* --- GRID GELAS RATA TENGAH --- */
+        .game-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            justify-content: center; /* Rata tengah horizontal untuk grid */
+            justify-items: center;   /* Rata tengah item di dalam sel grid */
+            align-items: end;        /* Gelas menempel di bawah rata */
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 450px;
+        }
+
+        /* Desain Gelas */
+        .glass {
+            width: 13vw;
+            max-width: 60px;
+            min-width: 46px;
+            height: 40vw;
+            max-height: 170px;
+            min-height: 130px;
+            border: 3px solid #ffffff;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            display: flex;
+            flex-direction: column-reverse; 
+            align-items: center;
+            padding: 3px;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+            background: rgba(255, 255, 255, 0.05);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.3);
+        }
+
+        /* Animasi naik saat diseleksi */
+        .glass.selected {
+            transform: translateY(-15px);
+            border-color: #4ecca3;
+            box-shadow: 0 10px 15px rgba(78, 204, 163, 0.4);
+        }
+
+        /* Blok Warna */
+        .color-block {
+            width: 100%;
+            height: 23%;
+            border-radius: 4px;
+            margin-top: 1px;
+        }
+
+        /* UI Buttons */
+        .btn {
+            background-color: #4ecca3;
+            color: #1a1a2e;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background-color: #35b38a;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: #1a1a2e;
+        }
+
+        .btn-secondary:hover {
+            background-color: #cbd5e1;
+        }
+
+        .win-message {
+            display: none;
+            font-size: 20px;
+            color: #4ecca3;
+            font-weight: bold;
+            margin-top: 15px;
+            text-align: center;
+            width: 100%;
+            animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.6); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LAYER 1: MAIN MENU (CENTERED) -->
+    <div class="menu-screen" id="menuScreen">
+        <h1>Color Sort Puzzle</h1>
+        <p>Sort and group the same colors into the designated glasses. Don't get stuck!</p>
+        
+        <div class="form-group">
+            <label for="levelSelect">Select Difficulty:</label>
+            <select id="levelSelect">
+                <option value="easy">Easy (3 Colors)</option>
+                <option value="medium" selected>Medium (4 Colors)</option>
+                <option value="hard">Hard (5 Colors)</option>
+            </select>
+        </div>
+
+        <button class="btn" style="width: 100%; max-width: 280px;" onclick="startGame()">Start Game</button>
+    </div>
+
+    <!-- LAYER 2: GAMEPLAY INTERFACE (CENTERED) -->
+    <div class="game-screen" id="gameScreen">
+        <h1>Color Sort Puzzle</h1>
+        
+        <div class="stats-container">
+            <div class="stat-box">Score: <span id="scoreLabel">0</span></div>
+            <div class="stat-box">Completed: <span id="completedLabel">0</span></div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-secondary" onclick="backToMenu()">Menu</button>
+            <button class="btn" onclick="initGame()">Reset</button>
+        </div>
+
+        <div class="game-container" id="gameContainer"></div>
+        
+        <div class="win-message" id="winMessage">🎉 Outstanding! Level Completed! 🎉</div>
+    </div>
+
+    <script>
+        const COLOR_PALETTE = ['#ff4757', '#1e90ff', '#2ed573', '#ffa502', '#9b59b6'];
+        const MAX_CAPACITY = 4;
+
+        let currentLevel = 'medium';
+        let glassesData = [];
+        let selectedGlassIndex = null;
+        let score = 0;
+        let totalColorsNeeded = 4;
+
+        function startGame() {
+            currentLevel = document.getElementById('levelSelect').value;
+            document.getElementById('menuScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'flex';
+            initGame();
+        }
+
+        function backToMenu() {
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('menuScreen').style.display = 'flex'; // Tetap gunakan flex agar rata tengah saat kembali
+        }
+
+        function generateLevel(level) {
+            let colorCount = 4;
+            if (level === 'easy') colorCount = 3;
+            if (level === 'hard') colorCount = 5;
+
+            totalColorsNeeded = colorCount;
+
+            let colorPool = [];
+            for (let i = 0; i < colorCount; i++) {
+                for (let j = 0; j < MAX_CAPACITY; j++) {
+                    colorPool.push(i);
+                }
+            }
+
+            // Shuffle
+            for (let i = colorPool.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [colorPool[i], colorPool[j]] = [colorPool[j], colorPool[i]];
+            }
+
+            let generatedGlasses = [];
+            for (let i = 0; i < colorCount; i++) {
+                generatedGlasses.push(colorPool.slice(i * MAX_CAPACITY, (i + 1) * MAX_CAPACITY));
+            }
+
+            // 2 Empty glasses
+            generatedGlasses.push([]);
+            generatedGlasses.push([]);
+
+            return generatedGlasses;
+        }
+
+        function initGame() {
+            glassesData = generateLevel(currentLevel);
+            selectedGlassIndex = null;
+            score = 0;
+            document.getElementById('winMessage').style.display = 'none';
+            updateStats();
+            render();
+        }
+
+        function updateStats() {
+            let completedGlasses = 0;
+
+            glassesData.forEach(glass => {
+                if (glass.length === MAX_CAPACITY) {
+                    const isSame = glass.every(color => color === glass[0]);
+                    if (isSame) completedGlasses++;
+                }
+            });
+
+            score = completedGlasses * 10;
+            document.getElementById('scoreLabel').innerText = score;
+            document.getElementById('completedLabel').innerText = `${completedGlasses} / ${totalColorsNeeded}`;
+        }
+
+        function render() {
+            const container = document.getElementById('gameContainer');
+            container.innerHTML = '';
+
+            const totalGlasses = glassesData.length;
+            // Mengatur grid agar selalu simetris di tengah berdasarkan jumlah gelas
+            if(totalGlasses <= 5) {
+                container.style.gridTemplateColumns = `repeat(${totalGlasses}, 1fr)`;
+            } else {
+                // Untuk level hard (7 gelas), dibagi menjadi 2 baris (4 atas, 3 bawah) secara rapi di tengah
+                container.style.gridTemplateColumns = `repeat(4, 1fr)`;
+            }
+
+            glassesData.forEach((glass, index) => {
+                const glassDiv = document.createElement('div');
+                glassDiv.className = 'glass';
+                if (selectedGlassIndex === index) {
+                    glassDiv.classList.add('selected');
+                }
+
+                glassDiv.onclick = () => handleGlassClick(index);
+
+                glass.forEach(colorIndex => {
+                    const block = document.createElement('div');
+                    block.className = 'color-block';
+                    block.style.backgroundColor = COLOR_PALETTE[colorIndex];
+                    glassDiv.appendChild(block);
+                });
+
+                container.appendChild(glassDiv);
+            });
+        }
+
+        function handleGlassClick(index) {
+            if (selectedGlassIndex === null) {
+                if (glassesData[index].length === 0) return;
+                selectedGlassIndex = index;
+            } else {
+                if (selectedGlassIndex === index) {
+                    selectedGlassIndex = null;
+                } else {
+                    moveColor(selectedGlassIndex, index);
+                    selectedGlassIndex = null;
+                }
+            }
+            updateStats();
+            render();
+            checkWin();
+        }
+
+        function moveColor(fromIndex, toIndex) {
+            const fromGlass = glassesData[fromIndex];
+            const toGlass = glassesData[toIndex];
+
+            if (fromGlass.length === 0 || toGlass.length >= MAX_CAPACITY) return;
+
+            const colorToMove = fromGlass[fromGlass.length - 1];
+
+            if (toGlass.length === 0 || toGlass[toGlass.length - 1] === colorToMove) {
+                toGlass.push(fromGlass.pop());
+                
+                while(fromGlass.length > 0 && fromGlass[fromGlass.length - 1] === colorToMove && toGlass.length < MAX_CAPACITY) {
+                    toGlass.push(fromGlass.pop());
+                }
+            }
+        }
+
+        function checkWin() {
+            let dynamicWinCheck = true;
+            let matchCount = 0;
+
+            for (let i = 0; i < glassesData.length; i++) {
+                const glass = glassesData[i];
+                if (glass.length > 0) {
+                    if (glass.length !== MAX_CAPACITY) {
+                        dynamicWinCheck = false;
+                        break;
+                    }
+                    const allSame = glass.every(color => color === glass[0]);
+                    if (!allSame) {
+                        dynamicWinCheck = false;
+                        break;
+                    }
+                    matchCount++;
+                }
+            }
+
+            if (dynamicWinCheck && matchCount === totalColorsNeeded) {
+                document.getElementById('winMessage').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
