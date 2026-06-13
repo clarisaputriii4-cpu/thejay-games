@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>🛡️ CHAIN SHIELD | JAY NETWORK</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <style>
+        @font-face {
+            font-family: 'JAYN';
+            src: url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+            font-display: swap;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: radial-gradient(ellipse at 30% 40%, #0a0f2a, #020108);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'JAYN', 'Orbitron', monospace;
+            touch-action: none;
+            padding: 10px;
+        }
+
+        .game-container {
+            text-align: center;
+            padding: 15px;
+            width: 100%;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: clamp(1.8rem, 8vw, 2.8rem);
+            background: linear-gradient(135deg, #ff3366, #ffcc33, #33ffcc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: 6px;
+            margin-bottom: 12px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: clamp(12px, 4vw, 32px);
+            background: rgba(10, 20, 40, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 60px;
+            padding: 10px 20px;
+            margin: 12px auto;
+            width: fit-content;
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            flex-wrap: wrap;
+        }
+
+        .stats div {
+            font-size: clamp(0.8rem, 3.5vw, 1.2rem);
+            font-weight: bold;
+            color: #ccddff;
+        }
+
+        .stats span {
+            background: linear-gradient(135deg, #ffcc44, #ff6644);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-size: clamp(1.2rem, 5vw, 1.7rem);
+            margin-left: 6px;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 28px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 0 2px rgba(0,255,255,0.3);
+            cursor: pointer;
+            background: #03001c;
+            width: 100%;
+            height: auto;
+            touch-action: none;
+        }
+
+        .shield-status {
+            margin: 12px auto;
+            font-size: 1rem;
+            color: #88ffdd;
+        }
+
+        button {
+            background: linear-gradient(95deg, #1f2a4e, #0a1028);
+            border: 1px solid #33ffcc;
+            padding: 8px 20px;
+            margin: 6px 6px;
+            font-weight: bold;
+            border-radius: 40px;
+            font-size: clamp(0.8rem, 3.5vw, 1rem);
+            cursor: pointer;
+            color: #ccffdd;
+            font-family: 'JAYN', monospace;
+        }
+        button:active {
+            transform: scale(0.94);
+        }
+
+        .futuristic-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: rgba(8, 12, 28, 0.98);
+            backdrop-filter: blur(24px);
+            border: 2px solid rgba(0, 255, 255, 0.7);
+            border-radius: 48px;
+            padding: clamp(20px, 6vw, 40px) clamp(24px, 8vw, 56px);
+            text-align: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
+            font-family: 'JAYN', monospace;
+            pointer-events: none;
+            width: 80%;
+            max-width: 400px;
+        }
+        .futuristic-popup.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+            pointer-events: auto;
+        }
+        .popup-content h2 {
+            font-size: clamp(1.4rem, 6vw, 2.2rem);
+            background: linear-gradient(135deg, #ff66aa, #ffcc33);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 16px;
+        }
+        .popup-content p {
+            color: #bbddff;
+            font-size: clamp(1rem, 4vw, 1.3rem);
+            margin: 12px 0;
+        }
+        .popup-content button {
+            background: linear-gradient(90deg, #ff3366, #ffaa33);
+            color: #010018;
+            border: none;
+            padding: 10px 28px;
+            margin-top: 16px;
+            cursor: pointer;
+            border-radius: 60px;
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <h1>🛡️ CHAIN SHIELD 🛡️</h1>
+    <div class="stats">
+        <div>SCORE <span id="scoreValue">0</span></div>
+        <div>CHAIN <span id="chainValue">0</span></div>
+        <div>SHIELD <span id="shieldValue">5</span></div>
+        <div>LEVEL <span id="levelValue">1</span></div>
+    </div>
+    <canvas id="gameCanvas" width="600" height="500"></canvas>
+    <div class="shield-status">⚡ TAP ENEMIES BEFORE THEY REACH THE JAY NETWORK CORE ⚡</div>
+    <div>
+        <button id="resetBtn">⟳ RESET</button>
+        <button id="soundBtn">🔊 AUDIO ON</button>
+    </div>
+</div>
+
+<div id="gameOverPopup" class="futuristic-popup">
+    <div class="popup-content">
+        <h2>💀 SHIELD BROKEN 💀</h2>
+        <p>SCORE: <span id="finalScore">0</span></p>
+        <p>LEVEL: <span id="finalLevel">1</span></p>
+        <button id="restartPopupBtn">⟳ REBOOT</button>
+    </div>
+</div>
+
+<div id="levelUpPopup" class="futuristic-popup">
+    <div class="popup-content">
+        <h2>⚡ SHIELD UPGRADE ⚡</h2>
+        <p>LEVEL <span id="newLevel">1</span></p>
+        <button id="closeLevelPopup">ACTIVATE</button>
+    </div>
+</div>
+
+<script>
+    let audioCtx = null;
+    let soundEnabled = true;
+    let jayLogo = new Image();
+    jayLogo.src = 'https://raw.githubusercontent.com/OneNov0209/logo/refs/heads/main/jay.png';
+    let logoLoaded = false;
+    jayLogo.onload = () => { logoLoaded = true; };
+    jayLogo.onerror = () => { console.log('Logo load failed, using fallback'); };
+
+    function initAudio() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playTone(freq, type = 'sine', duration = 0.18, volume = 0.22) {
+        if (!soundEnabled) return;
+        try {
+            initAudio();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            gain.gain.value = volume;
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        } catch(e) {}
+    }
+
+    function soundKill() { playTone(880, 'sine', 0.1, 0.2); }
+    function soundHit() { playTone(180, 'sawtooth', 0.3, 0.18); }
+    function soundLevelUp() { [523, 659, 830].forEach((f,i) => setTimeout(() => playTone(f, 'sine', 0.2, 0.2), i*70)); }
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreSpan = document.getElementById('scoreValue');
+    const chainSpan = document.getElementById('chainValue');
+    const shieldSpan = document.getElementById('shieldValue');
+    const levelSpan = document.getElementById('levelValue');
+
+    let width = 600, height = 500;
+    canvas.width = width; canvas.height = height;
+
+    let enemies = [];
+    let particles = [];
+    let score = 0;
+    let chain = 0;
+    let shield = 5;
+    let level = 1;
+    let gameActive = true;
+    let spawnCounter = 0;
+    let floatingLetters = [];
+
+    const center = { x: width/2, y: height/2 };
+    const shieldRadius = 45;
+
+    const lanes = [
+        { angle: -135, x: 80, y: 80 },
+        { angle: -45, x: width-80, y: 80 },
+        { angle: 45, x: width-80, y: height-80 },
+        { angle: 135, x: 80, y: height-80 }
+    ];
+
+    const jaynLetters = [
+        { char: 'J', color: '#ff3366' },
+        { char: 'A', color: '#ffcc33' },
+        { char: 'Y', color: '#33ffcc' },
+        { char: 'N', color: '#aa66ff' }
+    ];
+
+    function getDifficulty() {
+        return {
+            spawnDelay: Math.max(0.3, 1.2 - level * 0.07),
+            speed: Math.min(350, 100 + level * 18),
+            maxEnemies: Math.min(6, 2 + Math.floor(level / 4))
+        };
+    }
+
+    function spawnEnemy() {
+        if (!gameActive) return;
+        let lane = lanes[Math.floor(Math.random() * lanes.length)];
+        let letter = jaynLetters[Math.floor(Math.random() * 4)];
+        let diff = getDifficulty();
+        let distToCenter = Math.hypot(lane.x - center.x, lane.y - center.y);
+        let duration = distToCenter / diff.speed;
+        
+        enemies.push({
+            x: lane.x, y: lane.y,
+            startX: lane.x, startY: lane.y,
+            endX: center.x, endY: center.y,
+            t: 0,
+            duration: duration,
+            char: letter.char,
+            color: letter.color,
+            radius: 14,
+            hp: 1
+        });
+    }
+
+    function addFloatingLetter(x, y, char, color) {
+        floatingLetters.push({
+            char: char, x: x, y: y,
+            vx: (Math.random() - 0.5) * 100,
+            vy: -50 - Math.random() * 60,
+            life: 1.0, color: color,
+            size: 24, rotation: 0, rotSpeed: (Math.random() - 0.5) * 4
+        });
+    }
+
+    function handleTap(clientX, clientY) {
+        if (!gameActive) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        let canvasX = (clientX - rect.left) * scaleX;
+        let canvasY = (clientY - rect.top) * scaleY;
+        
+        let hitIndex = -1;
+        for (let i = 0; i < enemies.length; i++) {
+            const e = enemies[i];
+            let x = e.startX + (e.endX - e.startX) * e.t;
+            let y = e.startY + (e.endY - e.startY) * e.t;
+            let dx = canvasX - x;
+            let dy = canvasY - y;
+            if (Math.hypot(dx, dy) < e.radius + 10) {
+                hitIndex = i;
+                break;
+            }
+        }
+        
+        if (hitIndex !== -1) {
+            let e = enemies[hitIndex];
+            enemies.splice(hitIndex, 1);
+            
+            let addScore = 10 + Math.floor(chain / 5) * 5;
+            score += addScore;
+            chain++;
+            soundKill();
+            
+            for(let p=0; p<12; p++) {
+                particles.push({
+                    x: e.startX + (e.endX - e.startX) * e.t,
+                    y: e.startY + (e.endY - e.startY) * e.t,
+                    vx: (Math.random() - 0.5)*200,
+                    vy: (Math.random() - 0.5)*200,
+                    life: 0.7, color: e.color, size: 4
+                });
+            }
+            
+            addFloatingLetter(
+                e.startX + (e.endX - e.startX) * e.t,
+                e.startY + (e.endY - e.startY) * e.t,
+                e.char, e.color
+            );
+            
+            updateUI();
+        } else {
+            chain = 0;
+            soundHit();
+            updateUI();
+        }
+    }
+
+    function updateUI() {
+        scoreSpan.innerText = Math.floor(score);
+        chainSpan.innerText = chain;
+        shieldSpan.innerText = shield;
+        levelSpan.innerText = level;
+        
+        let requiredScore = level * 150;
+        if (score >= requiredScore && gameActive) {
+            levelUp();
+        }
+    }
+
+    function levelUp() {
+        level++;
+        shield = Math.min(10, shield + 2);
+        soundLevelUp();
+        showLevelPopup(level);
+        updateUI();
+    }
+
+    function gameOver() {
+        if (!gameActive) return;
+        gameActive = false;
+        document.getElementById('finalScore').innerText = Math.floor(score);
+        document.getElementById('finalLevel').innerText = level;
+        document.getElementById('gameOverPopup').classList.add('active');
+    }
+
+    function resetGame() {
+        gameActive = true;
+        enemies = [];
+        particles = [];
+        floatingLetters = [];
+        score = 0;
+        chain = 0;
+        shield = 5;
+        level = 1;
+        spawnCounter = 0;
+        updateUI();
+        document.getElementById('gameOverPopup').classList.remove('active');
+    }
+
+    function showLevelPopup(lev) {
+        document.getElementById('newLevel').innerText = lev;
+        document.getElementById('levelUpPopup').classList.add('active');
+        setTimeout(() => {
+            document.getElementById('levelUpPopup').classList.remove('active');
+        }, 1500);
+    }
+
+    let lastTime = 0;
+    function update(deltaSec) {
+        if (!gameActive) return;
+        if (deltaSec > 0.05) deltaSec = 0.05;
+        
+        for (let i = 0; i < enemies.length; i++) {
+            const e = enemies[i];
+            e.t += deltaSec / e.duration;
+            if (e.t >= 1.0) {
+                enemies.splice(i, 1);
+                shield--;
+                chain = 0;
+                soundHit();
+                updateUI();
+                if (shield <= 0) gameOver();
+                i--;
+            }
+        }
+        
+        let diff = getDifficulty();
+        spawnCounter += deltaSec;
+        if (spawnCounter >= diff.spawnDelay && enemies.length < diff.maxEnemies && gameActive) {
+            spawnCounter = 0;
+            spawnEnemy();
+        }
+        
+        for (let i = 0; i < particles.length; i++) {
+            particles[i].x += particles[i].vx * deltaSec;
+            particles[i].y += particles[i].vy * deltaSec;
+            particles[i].life -= deltaSec * 2;
+            if (particles[i].life <= 0) particles.splice(i,1), i--;
+        }
+        
+        for (let i = 0; i < floatingLetters.length; i++) {
+            const l = floatingLetters[i];
+            l.x += l.vx * deltaSec;
+            l.y += l.vy * deltaSec;
+            l.vy += 30 * deltaSec;
+            l.life -= deltaSec * 0.9;
+            l.rotation += l.rotSpeed * deltaSec * 90;
+            if (l.y > height + 100 || l.life <= 0) floatingLetters.splice(i,1), i--;
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, width, height);
+        
+        for(let i=0; i<20; i++) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(0, 255, 200, 0.05)`;
+            ctx.lineWidth = 0.8;
+            ctx.moveTo(i*35, 0); ctx.lineTo(i*35, height);
+            ctx.stroke();
+            ctx.moveTo(0, i*30); ctx.lineTo(width, i*30);
+            ctx.stroke();
+        }
+        
+        for (let l of lanes) {
+            ctx.beginPath();
+            ctx.moveTo(l.x, l.y);
+            ctx.lineTo(center.x, center.y);
+            ctx.strokeStyle = 'rgba(255,100,100,0.15)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+        }
+        
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#33ffcc';
+        ctx.fillStyle = '#33ffcc44';
+        ctx.beginPath();
+        ctx.arc(center.x, center.y, shieldRadius + Math.sin(Date.now()*0.008)*3, 0, Math.PI*2);
+        ctx.fill();
+        
+        if (logoLoaded && jayLogo.complete && jayLogo.naturalWidth > 0) {
+            ctx.save();
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#00ffff';
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, shieldRadius - 8, 0, Math.PI*2);
+            ctx.clip();
+            ctx.drawImage(jayLogo, center.x - 28, center.y - 28, 56, 56);
+            ctx.restore();
+        } else {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 22px JAYN';
+            ctx.shadowBlur = 10;
+            ctx.fillText('JAY', center.x-22, center.y+10);
+        }
+        
+        for (let e of enemies) {
+            let x = e.startX + (e.endX - e.startX) * e.t;
+            let y = e.startY + (e.endY - e.startY) * e.t;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = e.color;
+            ctx.beginPath();
+            ctx.arc(x, y, e.radius, 0, Math.PI*2);
+            ctx.fillStyle = e.color + 'cc';
+            ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold ${e.radius+4}px JAYN`;
+            ctx.fillText(e.char, x-9, y+7);
+        }
+        
+        for (let p of particles) {
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x-3, p.y-3, 6, 6);
+        }
+        
+        for (let l of floatingLetters) {
+            ctx.save();
+            ctx.translate(l.x, l.y);
+            ctx.rotate(l.rotation * Math.PI / 180);
+            ctx.globalAlpha = l.life;
+            ctx.font = `bold ${l.size}px JAYN`;
+            ctx.fillStyle = l.color;
+            ctx.shadowBlur = 12;
+            ctx.fillText(l.char, -l.size/2, l.size/3);
+            ctx.restore();
+        }
+        
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+        ctx.font = 'bold 11px JAYN';
+        ctx.fillStyle = '#33ffcc88';
+        ctx.fillText('JAY NETWORK // SECURE', 15, 35);
+        
+        if (shield <= 2 && shield > 0) {
+            ctx.fillStyle = '#ff3366aa';
+            ctx.font = 'bold 14px JAYN';
+            ctx.fillText('⚠️ SHIELD CRITICAL ⚠️', width-180, 35);
+        }
+    }
+
+    function onTap(e) {
+        e.preventDefault();
+        let clientX, clientY;
+        if(e.touches) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        handleTap(clientX, clientY);
+    }
+
+    function animate(now) {
+        requestAnimationFrame(animate);
+        if (!lastTime) { lastTime = now; return; }
+        let delta = Math.min(0.033, (now - lastTime) / 1000);
+        if (delta <= 0) return;
+        lastTime = now;
+        update(delta);
+        draw();
+    }
+
+    canvas.addEventListener('click', onTap);
+    canvas.addEventListener('touchstart', onTap, {passive: false});
+    document.getElementById('resetBtn').addEventListener('click', resetGame);
+    document.getElementById('soundBtn').addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        document.getElementById('soundBtn').innerText = soundEnabled ? "🔊 AUDIO ON" : "🔇 AUDIO OFF";
+    });
+    document.getElementById('restartPopupBtn').addEventListener('click', () => {
+        document.getElementById('gameOverPopup').classList.remove('active');
+        resetGame();
+    });
+    document.getElementById('closeLevelPopup').addEventListener('click', () => {
+        document.getElementById('levelUpPopup').classList.remove('active');
+    });
+
+    resetGame();
+    animate(0);
+    
+    canvas.addEventListener('click', () => initAudio());
+    canvas.addEventListener('touchstart', () => initAudio());
+</script>
+</body>
+</html>
