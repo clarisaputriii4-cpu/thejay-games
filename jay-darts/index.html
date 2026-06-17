@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>JAY DARTS</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+background:linear-gradient(to bottom,#2563eb,#0f172a);
+font-family:Arial,sans-serif;
+overflow:hidden;
+color:white;
+}
+.screen{
+position:absolute;
+inset:0;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+text-align:center;
+padding:20px;
+background:linear-gradient(to bottom,#2563eb,#0f172a);
+}
+button{padding:12px 24px;margin:8px;border:none;border-radius:10px;font-weight:bold;cursor:pointer}
+canvas{
+display:none;
+background:#0f172a;
+}
+#hud{display:none;position:absolute;top:10px;left:10px;font-weight:bold;font-size:22px}
+</style>
+</head>
+<body>
+
+<div id="menu" class="screen">
+<h1>JAY DARTS</h1>
+<p style="max-width:500px;margin:20px">Aim carefully, throw your darts, and hit the bullseye. Score as many points as possible and beat your high score.</p>
+<button onclick="startGame()">START GAME</button>
+<button onclick="showHow()">HOW TO PLAY</button>
+<div id="menuHigh"></div>
+</div>
+
+<div id="how" class="screen" style="display:none">
+<h1>HOW TO PLAY</h1>
+<p>🎯 Drag the dart backward.<br>🎯 Release to throw.<br>🎯 Bullseye = 100 Points.<br>🎯 You have 10 darts.</p>
+<button onclick="backMenu()">BACK</button>
+</div>
+
+<div id="gameOver" class="screen" style="display:none">
+<h1>GAME OVER</h1>
+<h2 id="finalScore"></h2>
+<h3 id="finalHigh"></h3>
+<button onclick="restart()">PLAY AGAIN</button>
+<button onclick="mainMenu()">MAIN MENU</button>
+</div>
+
+<div id="hud">
+<div id="score">SCORE: 0</div>
+<div id="darts">DARTS: 10</div>
+<div id="high">HIGH: 0</div>
+</div>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+document.body.style.background="#0f172a";
+
+function resize(){
+canvas.width=innerWidth;
+canvas.height=innerHeight;
+board.x=canvas.width*0.72;
+board.y=canvas.height*0.42;
+dart.x=canvas.width*0.2;
+dart.y=canvas.height*0.82;
+}
+window.addEventListener("resize",resize);
+
+const board={x:0,y:0,r:120};
+const dart={x:0,y:0,r:14,vx:0,vy:0,flying:false};
+resize();
+
+let score=0,dartsLeft=10,dragging=false;
+
+let pullX=0;
+let pullY=0;
+let highScore=parseInt(localStorage.getItem("jayDartsHigh")||0);
+
+const menu=document.getElementById("menu");
+const how=document.getElementById("how");
+const gameOver=document.getElementById("gameOver");
+const hud=document.getElementById("hud");
+
+document.getElementById("menuHigh").textContent="HIGH SCORE: "+highScore;
+document.getElementById("high").textContent="HIGH: "+highScore;
+
+function showHow(){menu.style.display="none";how.style.display="flex";}
+function backMenu(){how.style.display="none";menu.style.display="flex";}
+
+function startGame(){
+menu.style.display="none";
+gameOver.style.display="none";
+canvas.style.display="block";
+hud.style.display="block";
+score=0;
+dartsLeft=10;
+updateHud();
+resetDart();
+running=true;
+}
+
+function restart(){startGame();}
+
+function mainMenu(){
+gameOver.style.display="none";
+canvas.style.display="none";
+hud.style.display="none";
+menu.style.display="flex";
+}
+
+function updateHud(){
+scoreEl.textContent="SCORE: "+score;
+dartsEl.textContent="DARTS: "+dartsLeft;
+high.textContent="HIGH: "+highScore;
+}
+
+const scoreEl=document.getElementById("score");
+const dartsEl=document.getElementById("darts");
+const high=document.getElementById("high");
+
+function resetDart(){
+dart.x=canvas.width*0.2;
+dart.y=canvas.height*0.82;
+dart.vx=0;
+dart.vy=0;
+dart.flying=false;
+}
+
+function pos(e){
+const r=canvas.getBoundingClientRect();
+if(e.touches) return {x:e.touches[0].clientX-r.left,y:e.touches[0].clientY-r.top};
+return {x:e.clientX-r.left,y:e.clientY-r.top};
+}
+
+canvas.addEventListener("mousedown",down);
+canvas.addEventListener("mousemove",move);
+canvas.addEventListener("mouseup",up);
+canvas.addEventListener("touchstart",down);
+canvas.addEventListener("touchmove",move);
+canvas.addEventListener("touchend",up);
+
+function down(e){
+if(dart.flying||dartsLeft<=0)return;
+const p=pos(e);
+const d=Math.hypot(p.x-dart.x,p.y-dart.y);
+if(d<40) dragging=true;
+}
+
+function move(e){
+
+if(!dragging)return;
+
+let p=pos(e);
+
+pullX=p.x;
+pullY=p.y;
+
+}
+function up(){
+if(!dragging)return;
+dragging=false;
+
+let startX=canvas.width*0.2;
+let startY=canvas.height*0.82;
+
+dart.vx=(startX-pullX)*0.22;
+dart.vy=(startY-pullY)*0.22;
+dart.flying=true;
+dartsLeft--;
+updateHud();
+}
+
+let running=false;
+
+function scoreHit(){
+let dist=Math.hypot(dart.x-board.x,dart.y-board.y);
+let pts=0;
+if(dist<15) pts=100;
+else if(dist<35) pts=50;
+else if(dist<65) pts=25;
+else if(dist<120) pts=10;
+
+score+=pts;
+
+if(score>highScore){
+highScore=score;
+localStorage.setItem("jayDartsHigh",highScore);
+}
+
+updateHud();
+
+setTimeout(()=>{
+if(dartsLeft<=0){
+document.getElementById("finalScore").textContent="FINAL SCORE: "+score;
+document.getElementById("finalHigh").textContent="HIGH SCORE: "+highScore;
+gameOver.style.display="flex";
+running=false;
+}else{
+resetDart();
+}
+},500);
+}
+
+function drawBoard(){
+ctx.save();
+ctx.translate(board.x,board.y);
+ctx.shadowColor="rgba(0,0,0,0.5)";
+ctx.shadowBlur=25;
+
+for(let r=120;r>0;r-=30){
+ctx.fillStyle=(r%60===0)?"#e11d48":"#ffffff";
+ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill();
+}
+ctx.fillStyle="#2563eb";
+ctx.beginPath();ctx.arc(0,0,45,0,Math.PI*2);ctx.fill();
+ctx.fillStyle="#facc15";
+ctx.beginPath();ctx.arc(0,0,15,0,Math.PI*2);ctx.fill();
+
+ctx.restore();
+}
+
+function drawAim(){
+
+if(!dragging)return;
+
+let startX=canvas.width*0.2;
+let startY=canvas.height*0.82;
+
+ctx.strokeStyle="rgba(255,255,255,0.6)";
+ctx.lineWidth=3;
+
+ctx.beginPath();
+ctx.moveTo(startX,startY);
+ctx.lineTo(pullX,pullY);
+ctx.stroke();
+
+}
+
+function drawDart(){
+
+ctx.save();
+
+ctx.translate(dart.x,dart.y);
+
+let angle=Math.atan2(dart.vy,dart.vx);
+
+if(!dart.flying){
+angle=-0.4;
+}
+
+ctx.rotate(angle);
+
+// badan dart
+ctx.fillStyle="#cfd8dc";
+ctx.fillRect(-25,-3,30,6);
+
+// ujung dart
+ctx.fillStyle="#ffd54f";
+
+ctx.beginPath();
+ctx.moveTo(5,0);
+ctx.lineTo(18,-5);
+ctx.lineTo(18,5);
+ctx.closePath();
+ctx.fill();
+
+// sirip atas
+ctx.fillStyle="#60a5fa";
+
+ctx.beginPath();
+ctx.moveTo(-25,0);
+ctx.lineTo(-38,-10);
+ctx.lineTo(-30,0);
+ctx.closePath();
+ctx.fill();
+
+// sirip bawah
+ctx.beginPath();
+ctx.moveTo(-25,0);
+ctx.lineTo(-38,10);
+ctx.lineTo(-30,0);
+ctx.closePath();
+ctx.fill();
+
+ctx.restore();
+
+}
+
+function drawPrediction(){
+
+if(!dragging)return;
+
+let startX=canvas.width*0.2;
+let startY=canvas.height*0.82;
+
+let vx=(startX-pullX)*0.22;
+let vy=(startY-pullY)*0.22;
+
+let x=startX;
+let y=startY;
+
+ctx.fillStyle="rgba(255,255,255,0.5)";
+
+for(let i=0;i<25;i++){
+
+x+=vx;
+y+=vy;
+
+ctx.beginPath();
+ctx.arc(x,y,3,0,Math.PI*2);
+ctx.fill();
+
+}
+
+}
+
+function loop(){
+requestAnimationFrame(loop);
+if(!running)return;
+
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+// background game
+let bg=ctx.createLinearGradient(
+0,0,0,canvas.height
+);
+
+bg.addColorStop(0,"#1e3a8a");
+bg.addColorStop(1,"#0f172a");
+
+ctx.fillStyle=bg;
+ctx.fillRect(
+0,
+0,
+canvas.width,
+canvas.height
+);
+
+let glow=ctx.createRadialGradient(
+board.x,
+board.y,
+20,
+board.x,
+board.y,
+250
+);
+
+glow.addColorStop(0,"rgba(255,255,255,0.25)");
+glow.addColorStop(1,"rgba(255,255,255,0)");
+
+ctx.fillStyle=glow;
+
+ctx.beginPath();
+ctx.arc(
+board.x,
+board.y,
+250,
+0,
+Math.PI*2
+);
+ctx.fill();
+
+for(let i=0;i<12;i++){
+
+ctx.fillStyle="rgba(255,255,180,0.8)";
+
+ctx.beginPath();
+
+ctx.arc(
+(i+1)*(canvas.width/13),
+50,
+6,
+0,
+Math.PI*2
+);
+
+ctx.fill();
+
+}
+
+// lantai
+
+ctx.fillStyle="#4b5563";
+
+ctx.fillRect(
+0,
+canvas.height*0.82,
+canvas.width,
+canvas.height*0.18
+);
+
+ctx.strokeStyle="rgba(255,255,255,0.2)";
+ctx.lineWidth=3;
+
+ctx.beginPath();
+
+ctx.moveTo(
+0,
+canvas.height*0.82
+);
+
+ctx.lineTo(
+canvas.width,
+canvas.height*0.82
+);
+
+ctx.stroke();
+
+ctx.fillStyle="#374151";
+
+ctx.fillRect(
+board.x-170,
+board.y-170,
+340,
+340
+);
+
+
+drawBoard();
+drawPrediction();
+drawAim();
+drawDart();
+
+if(dart.flying){
+dart.x+=dart.vx;
+dart.y+=dart.vy;
+
+if(Math.hypot(dart.x-board.x,dart.y-board.y)<board.r){
+dart.flying=false;
+scoreHit();
+}
+
+if(dart.x>canvas.width||dart.y<0||dart.y>canvas.height){
+dart.flying=false;
+if(dartsLeft<=0){
+document.getElementById("finalScore").textContent="FINAL SCORE: "+score;
+document.getElementById("finalHigh").textContent="HIGH SCORE: "+highScore;
+gameOver.style.display="flex";
+running=false;
+}else{
+resetDart();
+}
+}
+}
+}
+loop();
+</script>
+</body>
+</html>
