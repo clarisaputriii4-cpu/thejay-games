@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lane Runner</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        body {
+            background-color: #050210;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+            padding: 10px;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 700px;
+            background: linear-gradient(135deg, #9d4edd 0%, #1a0036 50%, #00b4d8 100%);
+            padding: 12px;
+            border-radius: 24px;
+            box-shadow: 0 0 40px rgba(157, 78, 221, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: relative;
+        }
+
+        .audio-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 20;
+            background: rgba(13, 4, 34, 0.8);
+            border: 2px solid #00b4d8;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .screen-frame {
+            width: 100%;
+            aspect-ratio: 700 / 400;
+            background: #0d0422;
+            border: 4px solid #e0aaff;
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .touch-btn {
+            background: linear-gradient(90deg, #16073a, #005f9e);
+            border: 3px solid #00b4d8;
+            border-radius: 16px;
+            height: 55px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .touch-btn:active {
+            background: linear-gradient(90deg, #b5179e, #00b4d8);
+        }
+
+        .arrow-icon {
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+        }
+        .arrow-up { border-bottom: 20px solid #fff; }
+        .arrow-down { border-top: 20px solid #fff; }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(7, 2, 18, 0.95);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .hidden { display: none !important; }
+
+        @keyframes neonPulse {
+            0%, 100% { text-shadow: 0 0 10px #00b4d8; }
+            50% { text-shadow: 0 0 20px #9d4edd; }
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #ffffff;
+            animation: neonPulse 2s infinite;
+            letter-spacing: 2px;
+            margin-bottom: 2px;
+        }
+
+        .subtitle {
+            color: #00b4d8;
+            font-size: 0.65rem;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            color: #ff4d6d;
+            margin-bottom: 8px;
+        }
+
+        .instructions {
+            background: rgba(157, 78, 221, 0.1);
+            border: 1px solid rgba(0, 180, 216, 0.3);
+            border-radius: 8px;
+            padding: 6px 10px;
+            margin-bottom: 12px;
+            width: 95%;
+            max-width: 450px;
+        }
+
+        .instructions p {
+            font-size: 0.75rem;
+            color: #e0aaff;
+            margin: 2px 0;
+        }
+
+        .btn {
+            background: linear-gradient(90deg, #9d4edd, #00b4d8);
+            border: none;
+            color: white;
+            padding: 8px 30px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 180, 216, 0.5);
+        }
+
+        .score-display {
+            font-size: 0.9rem;
+            color: #e0aaff;
+            margin-bottom: 10px;
+        }
+        .score-display span { color: #fff; font-weight: bold; }
+
+        @media (min-width: 600px) {
+            h1 { font-size: 3rem; margin-bottom: 5px; }
+            .subtitle { font-size: 1rem; margin-bottom: 20px; }
+            .instructions { padding: 12px; margin-bottom: 20px; }
+            .instructions p { font-size: 0.95rem; margin: 4px 0; }
+            .btn { padding: 12px 45px; font-size: 1.1rem; }
+            .touch-btn { height: 70px; }
+            .game-container { padding: 25px; gap: 20px; }
+            .audio-toggle { top: 35px; right: 45px; font-size: 0.8rem; }
+            h2 { font-size: 2.5rem; margin-bottom: 15px; }
+            .score-display { font-size: 1.1rem; margin-bottom: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <button class="audio-toggle" id="audioToggle">Music: OFF</button>
+        
+        <div class="screen-frame">
+            <div id="startScreen" class="overlay">
+                <h1>LANE RUNNER</h1>
+                <div class="subtitle">CYBER EDITION</div>
+                
+                <div class="instructions">
+                    <p style="color: #ffb703; font-weight: bold; margin-bottom: 2px;">How to Play</p>
+                    <p>• Collect <b>Yellow Coins (+50 Points)</b></p>
+                    <p>• Avoid obstacles, the game speeds up</p>
+                    <p>• Mobile: Tap the <b>Up / Down</b> buttons below</p>
+                </div>
+                
+                <button class="btn" id="startBtn">Start</button>
+            </div>
+
+            <div id="gameOverScreen" class="overlay hidden">
+                <h2>GAME OVER</h2>
+                <div class="score-display">
+                    <p>Final Score: <span id="finalScore">0</span></p>
+                    <p>High Score: <span id="highScore">0</span></p>
+                </div>
+                <button class="btn" id="restartBtn">Play Again</button>
+            </div>
+
+            <canvas id="gameCanvas" width="700" height="400"></canvas>
+        </div>
+
+        <div class="controls-area">
+            <div class="touch-btn" id="btnUp"><div class="arrow-icon arrow-up"></div></div>
+            <div class="touch-btn" id="btnDown"><div class="arrow-icon arrow-down"></div></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const startScreen = document.getElementById('startScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const finalScoreTxt = document.getElementById('finalScore');
+        const highScoreTxt = document.getElementById('highScore');
+        const audioToggle = document.getElementById('audioToggle');
+
+        const btnUp = document.getElementById('btnUp');
+        const btnDown = document.getElementById('btnDown');
+
+        let gameActive = false;
+        let score = 0;
+        let localHighScore = localStorage.getItem('lane_runner_high_v3') || 0;
+        let lastSpeedUpScore = 0;
+        let speedUpTimer = 0; 
+
+        const LANES = { TOP: 140, BOTTOM: 280 };
+
+        let audioCtx = null;
+        let bgmNode = null;
+        let isMuted = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            if (!audioCtx || isMuted) return;
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+
+                if (type === 'switch') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(450, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.07);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.07);
+                } else if (type === 'coin') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); 
+                    osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.08); 
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+                } else if (type === 'crash') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(20, audioCtx.currentTime + 0.6);
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.6);
+                } else if (type === 'speedup') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(600, audioCtx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+                }
+            } catch(e) {}
+        }
+
+        function startBGM() {
+            if (isMuted || !audioCtx) return;
+            if (bgmNode) stopBGM();
+
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                const bufferSize = audioCtx.sampleRate * 2; 
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                
+                for (let i = 0; i < bufferSize; i++) {
+                    let t = i / audioCtx.sampleRate;
+                    data[i] = Math.sin(2 * Math.PI * 55 * t) * 0.3 + Math.sin(2 * Math.PI * 110 * (t % 0.25)) * 0.1;
+                }
+
+                bgmNode = audioCtx.createBufferSource();
+                bgmNode.buffer = buffer;
+                bgmNode.loop = true;
+                
+                const bgmGain = audioCtx.createGain();
+                bgmGain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                
+                bgmNode.connect(bgmGain);
+                bgmGain.connect(audioCtx.destination);
+                bgmNode.start();
+            } catch(e){}
+        }
+
+        function stopBGM() {
+            if (bgmNode) { try { bgmNode.stop(); } catch(e){} bgmNode = null; }
+        }
+
+        audioToggle.addEventListener('click', () => {
+            initAudio();
+            isMuted = !isMuted;
+            audioToggle.innerText = isMuted ? "Music: OFF" : "Music: ON";
+            if (!isMuted && gameActive) startBGM();
+            else stopBGM();
+        });
+
+        class Star {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speed = Math.random() * 2 + 1;
+            }
+            update(mult) {
+                this.x -= this.speed * mult;
+                if (this.x < 0) { this.x = canvas.width; this.y = Math.random() * canvas.height; }
+            }
+            draw() {
+                ctx.fillStyle = 'rgba(0, 180, 216, 0.4)';
+                ctx.fillRect(this.x, this.y, this.size, this.size);
+            }
+        }
+
+        class PlayerCar {
+            constructor() {
+                this.x = 90; 
+                this.y = LANES.BOTTOM; 
+                this.targetY = LANES.BOTTOM;
+                this.width = 50; 
+                this.height = 28; 
+                this.speed = 0.25;
+            }
+            switchLane(target) {
+                if (this.targetY !== target) { this.targetY = target; playSound('switch'); }
+            }
+            update() { this.y += (this.targetY - this.y) * this.speed; }
+            draw() {
+                ctx.save(); 
+                ctx.shadowColor = '#00b4d8'; 
+                ctx.shadowBlur = 15;
+                ctx.fillStyle = '#00b4d8'; 
+                ctx.fillRect(this.x, this.y - this.height/2, this.width, this.height);
+                ctx.fillStyle = '#fff'; 
+                ctx.fillRect(this.x + 25, this.y - this.height/2 + 4, 18, this.height - 8);
+                ctx.restore();
+            }
+        }
+
+        class Barricade {
+            constructor(speedMultiplier) {
+                this.x = canvas.width + 50;
+                this.y = Math.random() < 0.5 ? LANES.TOP : LANES.BOTTOM;
+                this.width = 35; 
+                this.height = 55;
+                this.speed = (4 + Math.random() * 2) * speedMultiplier;
+                this.passed = false;
+            }
+            update() { this.x -= this.speed; }
+            draw() {
+                ctx.save(); 
+                ctx.shadowColor = '#9d4edd'; 
+                ctx.shadowBlur = 12;
+                ctx.fillStyle = '#9d4edd'; 
+                ctx.fillRect(this.x - this.width/2, this.y - this.height/2, this.width, this.height);
+                ctx.strokeStyle = '#fff'; 
+                ctx.lineWidth = 2; 
+                ctx.beginPath();
+                ctx.moveTo(this.x-10, this.y-10); 
+                ctx.lineTo(this.x+10, this.y+10); 
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        class Coin {
+            constructor() {
+                this.x = canvas.width + 40;
+                this.y = Math.random() < 0.5 ? LANES.TOP : LANES.BOTTOM;
+                this.radius = 12;
+                this.speed = 4;
+            }
+            update(mult) { this.x -= this.speed * mult; }
+            draw() {
+                ctx.save(); 
+                ctx.shadowColor = '#ffb703'; 
+                ctx.shadowBlur = 15;
+                ctx.fillStyle = '#ffb703'; 
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); 
+                ctx.fill();
+                
+                ctx.fillStyle = '#fff'; 
+                ctx.font = "bold 12px Arial";
+                ctx.fillText("$", this.x - 4, this.y + 4);
+                ctx.restore();
+            }
+        }
+
+        let player;
+        let obstacles = [];
+        let coins = [];
+        let stars = [];
+        let nextSpawnTime = 0;
+        let nextCoinTime = 0;
+        let difficultyMultiplier = 1;
+
+        for (let i = 0; i < 40; i++) stars.push(new Star());
+
+        function startNewGame() {
+            player = new PlayerCar();
+            obstacles = []; 
+            coins = [];
+            score = 0; 
+            lastSpeedUpScore = 0; 
+            speedUpTimer = 0;
+            difficultyMultiplier = 1; 
+            nextSpawnTime = 0;
+            gameActive = true;
+            startBGM();
+        }
+
+        function triggerCrashSequence() {
+            gameActive = false;
+            stopBGM();
+            playSound('crash');
+
+            if (score > localHighScore) {
+                localHighScore = score;
+                localStorage.setItem('lane_runner_high_v3', localHighScore);
+            }
+            finalScoreTxt.innerText = score;
+            highScoreTxt.innerText = localHighScore;
+            gameOverScreen.classList.remove('hidden');
+        }
+
+        function loop(timestamp) {
+            ctx.fillStyle = '#0d0422';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            stars.forEach(star => { star.update(difficultyMultiplier); star.draw(); });
+
+            ctx.strokeStyle = 'rgba(0, 180, 216, 0.2)'; ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.moveTo(0, LANES.TOP); ctx.lineTo(canvas.width, LANES.TOP); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, LANES.BOTTOM); ctx.lineTo(canvas.width, LANES.BOTTOM); ctx.stroke();
+
+            if (gameActive) {
+                difficultyMultiplier += 0.0002;
+
+                if (score > 0 && score % 100 === 0 && score !== lastSpeedUpScore) {
+                    difficultyMultiplier += 0.15; 
+                    lastSpeedUpScore = score;
+                    speedUpTimer = 60; 
+                    playSound('speedup');
+                }
+
+                if (timestamp > nextSpawnTime) {
+                    obstacles.push(new Barricade(difficultyMultiplier));
+                    nextSpawnTime = timestamp + (1200 / difficultyMultiplier) + Math.random() * 500;
+                }
+
+                if (timestamp > nextCoinTime) {
+                    coins.push(new Coin());
+                    nextCoinTime = timestamp + 3000 + Math.random() * 4000;
+                }
+
+                player.update();
+                player.draw();
+
+                for (let i = coins.length - 1; i >= 0; i--) {
+                    let c = coins[i];
+                    c.update(difficultyMultiplier);
+                    c.draw();
+
+                    let dist = Math.hypot(player.x + 25 - c.x, player.y - c.y);
+                    if (dist < c.radius + 15) {
+                        score += 50; 
+                        playSound('coin');
+                        coins.splice(i, 1);
+                        continue;
+                    }
+                    if (c.x < -30) coins.splice(i, 1);
+                }
+
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    let obs = obstacles[i];
+                    obs.update(); 
+                    obs.draw();
+
+                    if (!obs.passed && obs.x < player.x) { obs.passed = true; score += 10; }
+
+                    if (player.x + player.width > obs.x - obs.width/2 && 
+                        player.x < obs.x + obs.width/2 && 
+                        player.y + 14 > obs.y - obs.height/2 && 
+                        player.y - 14 < obs.y + obs.height/2) {
+                        triggerCrashSequence();
+                    }
+                    if (obs.x < -50) obstacles.splice(i, 1);
+                }
+            }
+
+            ctx.fillStyle = '#fff'; ctx.font = "bold 18px 'Segoe UI', Arial";
+            ctx.fillText(`SCORE: ${score}`, 25, 40);
+            ctx.fillStyle = '#00b4d8';
+            ctx.fillText(`HIGH SCORE: ${localHighScore}`, canvas.width - 160, 40);
+
+            if (speedUpTimer > 0) {
+                speedUpTimer--;
+                if (Math.floor(speedUpTimer / 8) % 2 === 0) { 
+                    ctx.fillStyle = '#ff4d6d';
+                    ctx.font = "italic bold 32px 'Segoe UI', Arial";
+                    ctx.shadowColor = '#ff4d6d'; ctx.shadowBlur = 15;
+                    ctx.fillText("▲ SPEED UP! ▲", canvas.width / 2 - 110, canvas.height / 2 - 20);
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (!gameActive) return;
+            if (e.key === 'w' || e.key === 'ArrowUp') player.switchLane(LANES.TOP);
+            if (e.key === 's' || e.key === 'ArrowDown') player.switchLane(LANES.BOTTOM);
+        });
+
+        btnUp.addEventListener('pointerdown', (e) => { e.preventDefault(); initAudio(); if (gameActive) player.switchLane(LANES.TOP); });
+        btnDown.addEventListener('pointerdown', (e) => { e.preventDefault(); initAudio(); if (gameActive) player.switchLane(LANES.BOTTOM); });
+
+        startBtn.addEventListener('click', () => { 
+            initAudio(); 
+            startScreen.classList.add('hidden'); 
+            startNewGame(); 
+        });
+        
+        restartBtn.addEventListener('click', () => { 
+            initAudio(); 
+            gameOverScreen.classList.add('hidden'); 
+            startNewGame(); 
+        });
+
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>
