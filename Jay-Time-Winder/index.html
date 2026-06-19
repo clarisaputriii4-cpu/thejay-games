@@ -338,16 +338,13 @@
             mobileControls.classList.remove('hidden');
         }
 
-        // --- AUTOMATIC OLD SCORE FIX LOGIC ---
         let savedHighScore = parseInt(localStorage.getItem('jayMultiverse_hiScore')) || 0;
         
-        // Jika skor di memori di atas 250 (dari sistem lama 17200), otomatis paksa jadi 0
         if (savedHighScore > 250) {
             localStorage.setItem('jayMultiverse_hiScore', 0);
             savedHighScore = 0;
         }
         menuHighScore.innerHTML = `Universal High Score: <span style="color: #ffee32; font-weight: bold;">${savedHighScore}</span>`;
-        // -------------------------------------
 
         let audioCtx = null;
         function playTone(freq, type, duration) {
@@ -558,6 +555,7 @@
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
+            requestAnimationFrame(gameLoop);
         }
 
         function checkCollision(r1, r2) {
@@ -668,7 +666,6 @@
                 document.getElementById('finalScore').innerText = finalCalculatedScore;
                 document.getElementById('highScoreText').innerText = currentHi;
                 
-                // Perbarui juga tampilan skor di menu depan agar langsung berubah saat balik ke lobi
                 menuHighScore.innerHTML = `Universal High Score: <span style="color: #ffee32; font-weight: bold;">${currentHi}</span>`;
                 
                 playTone(600, 'sine', 0.15);
@@ -794,7 +791,8 @@
         }
 
         function gameLoop() {
-            update(); draw(); requestAnimationFrame(gameLoop);
+            update(); draw(); 
+            if(gameActive) requestAnimationFrame(gameLoop);
         }
 
         window.addEventListener('keydown', (e) => {
@@ -811,30 +809,31 @@
             if (e.key === 'r' || e.key === 'R') input.rewind = false;
         });
 
-        const bindMobileBtn = (elementId, prop) => {
-            const el = document.getElementById(elementId);
-            el.addEventListener('touchstart', (e) => { 
-                e.preventDefault(); 
-                input[prop] = true; 
-                if(elementId==='btnRewind') el.classList.add('active'); 
-            }, { passive: false });
-            
-            el.addEventListener('touchend', (e) => { 
-                e.preventDefault(); 
-                input[prop] = false; 
-                if(elementId==='btnRewind') el.classList.remove('active'); 
-            }, { passive: false });
-        };
+        const btnLeft = document.getElementById('btnLeft');
+        const btnRight = document.getElementById('btnRight');
+        const btnJump = document.getElementById('btnJump');
+        const btnRewind = document.getElementById('btnRewind');
 
-        bindMobileBtn('btnLeft', 'left');
-        bindMobileBtn('btnRight', 'right');
-        bindMobileBtn('btnJump', 'jump');
-        bindMobileBtn('btnRewind', 'rewind');
+        function addControlListeners(el, action, startValue, endValue) {
+            el.addEventListener('touchstart', (e) => { e.preventDefault(); input[action] = startValue; });
+            el.addEventListener('touchend', (e) => { e.preventDefault(); input[action] = endValue; });
+        }
 
-        startBtn.addEventListener('click', () => { startScreen.classList.add('hidden'); initGame(); });
-        restartBtn.addEventListener('click', () => { winScreen.classList.add('hidden'); initGame(); });
+        addControlListeners(btnLeft, 'left', true, false);
+        addControlListeners(btnRight, 'right', true, false);
+        addControlListeners(btnJump, 'jump', true, false);
+        addControlListeners(btnRewind, 'rewind', true, false);
 
-        requestAnimationFrame(gameLoop);
+        startBtn.addEventListener('click', () => {
+            startScreen.classList.add('hidden');
+            initGame();
+        });
+
+        restartBtn.addEventListener('click', () => {
+            winScreen.classList.add('hidden');
+            initGame();
+        });
+
     </script>
 </body>
 </html>
