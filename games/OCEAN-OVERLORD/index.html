@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ocean Overlord: Apex Evolution</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        body {
+            background: #01040a;
+            font-family: 'Segoe UI', -apple-system, Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            color: #fff;
+        }
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 5;
+        }
+        /* HUD GLASSMORPHISM */
+        .hud {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            pointer-events: none;
+            z-index: 10;
+        }
+        @media(min-width: 600px) {
+            .hud {
+                grid-template-columns: repeat(5, 1fr);
+                top: 20px;
+                left: 25px;
+                right: 25px;
+            }
+        }
+        .hud-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 8px;
+            border-radius: 14px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .hud-label {
+            font-size: 10px;
+            color: #00b4d8;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+            letter-spacing: 1px;
+        }
+        .heart-icon { color: #ff4d4d; letter-spacing: 2px; }
+        .shield-active { color: #00f5d4; font-weight: bold; }
+        
+        /* DASH BAR */
+        .dash-bar-container {
+            width: 80%;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+        #dashBarFill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, #00b4d8, #00f5d4);
+            transition: width 0.1s linear;
+        }
+
+        /* WARNING ALERT SYSTEM - PERFECT SYMMETRICAL CENTERING */
+        #warningAlert {
+            position: absolute;
+            top: 30%;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(90deg, rgba(255, 0, 0, 0) 0%, rgba(255, 0, 0, 0.2) 25%, rgba(255, 0, 0, 0.2) 75%, rgba(255, 0, 0, 0) 100%);
+            border-top: 2px solid rgba(255, 51, 51, 0.7);
+            border-bottom: 2px solid rgba(255, 51, 51, 0.7);
+            padding: 18px 0;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.15);
+            z-index: 9;
+        }
+        .warning-text {
+            font-size: 20px;
+            font-weight: 900;
+            color: #ff3333;
+            text-shadow: 0 0 15px #ff0000;
+            letter-spacing: 3px;
+            text-align: center;
+            padding: 0 20px;
+            animation: blink 0.4s infinite alternate;
+            text-transform: uppercase;
+        }
+        @media(min-width: 600px) {
+            .warning-text {
+                font-size: 28px;
+                letter-spacing: 4px;
+            }
+        }
+        @keyframes blink {
+            0% { opacity: 0.3; transform: scale(0.98); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* SCREENS & GUIDE UI */
+        .screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(2, 6, 18, 0.97);
+            padding: 30px 24px;
+            border-radius: 28px;
+            border: 2px solid #00b4d8;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            pointer-events: auto;
+            text-align: center;
+            width: 92%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        h1 {
+            font-size: 30px;
+            color: #00b4d8;
+            margin-bottom: 5px;
+            text-shadow: 0 0 15px rgba(0,180,216,0.6);
+            letter-spacing: 1px;
+            font-weight: 900;
+        }
+        .subtitle { color: #90e0ef; font-size: 13px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 2px; }
+        
+        .guide-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            overflow: hidden;
+            text-align: left;
+        }
+        .guide-table th {
+            background: #0077b6;
+            color: white;
+            padding: 10px;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+        .guide-table td {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 12px;
+            vertical-align: middle;
+        }
+        .badge {
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 11px;
+            display: inline-block;
+        }
+        .bg-player { background: #ff9e00; color: #000; }
+        .bg-food { background: #2ecc71; color: #fff; }
+        .bg-danger { background: #e74c3c; color: #fff; }
+        .bg-plankton { background: #00f5d4; color: #000; }
+        .bg-mechanic { background: #a663cc; color: #fff; }
+
+        button {
+            background: linear-gradient(135deg, #00b4d8, #0077b6);
+            border: none;
+            color: white;
+            padding: 16px 45px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 6px 20px rgba(0,180,216,0.4);
+            text-transform: uppercase;
+            width: 100%;
+        }
+        button:hover, button:active {
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(0,180,216,0.6);
+        }
+        .hidden { display: none !important; }
+
+        /* WINNER BUTTON SPECIFIC COLOR */
+        .btn-win {
+            background: linear-gradient(135deg, #ffb703, #fb8500);
+            box-shadow: 0 6px 20px rgba(251,133,0,0.4);
+        }
+        .btn-win:hover, .btn-win:active {
+            box-shadow: 0 8px 25px rgba(251,133,0,0.6);
+        }
+    </style>
+</head>
+<body>
+
+<div id="gameContainer">
+    <canvas id="gameCanvas"></canvas>
+    
+    <div class="ui-layer">
+        <div id="warningAlert" class="hidden">
+            <div class="warning-text">⚠️ WARNING: APEX PREDATOR APPROACHING! ⚠️</div>
+        </div>
+
+        <div id="hud" class="hud hidden">
+            <div class="hud-card"><span class="hud-label">Mass Score</span><span id="scoreDisplay">0</span></div>
+            <div class="hud-card"><span class="hud-label">Protective Lives</span><span id="livesDisplay" class="heart-icon">❤️❤️❤️</span></div>
+            <div class="hud-card"><span class="hud-label">Energy Shield</span><span id="shieldDisplay">INACTIVE</span></div>
+            <div class="hud-card"><span class="hud-label">Size Class</span><span id="sizeDisplay">18cm</span></div>
+            <div class="hud-card">
+                <span class="hud-label">Dash Reflex</span>
+                <div class="dash-bar-container"><div id="dashBarFill"></div></div>
+            </div>
+        </div>
+
+        <div id="startScreen" class="screen">
+            <h1>OCEAN OVERLORD</h1>
+            <div class="subtitle">Apex Evolution</div>
+            
+            <table class="guide-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">Entity</th>
+                        <th>Rules & Survival Guide</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge bg-player">YOUR FISH</span></td>
+                        <td>Move with <b>Mouse/Drag</b>. Your body mutates into alpha-predator forms as you grow larger!</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bg-mechanic">DASH REFLEX</span></td>
+                        <td><b>Left-Click (PC)</b> or <b>Tap Screen (Mobile)</b> to trigger a high-speed dash burst to escape or hunt.</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bg-food">GREEN AURA</span></td>
+                        <td>Creatures <b>smaller</b> than you. Swallow them to increase your total biomass size.</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bg-danger">RED AURA</span></td>
+                        <td>Predators <b>larger</b> than you. Avoid them or use Dash to outrun their jaws!</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bg-plankton">PLANKTON</span></td>
+                        <td>Floating neon swarms. Eat them to activate an impenetrable **Energy Shield**.</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <button onclick="startGame()">Begin Evolution</button>
+        </div>
+
+        <div id="gameOverScreen" class="screen hidden">
+            <h1 style="color: #ff4d4d; text-shadow: 0 0 15px rgba(255,77,77,0.5);">EXTINCT!</h1>
+            <p id="finalScore">You failed to survive the harsh oceanic food chain.</p>
+            <button onclick="startGame()">Respawn Clone</button>
+        </div>
+
+        <div id="winnerScreen" class="screen hidden" style="border-color: #ffb703;">
+            <h1 style="color: #ffb703; text-shadow: 0 0 20px rgba(255,183,3,0.6); font-size: 36px;">🏆 WINNER! 🏆</h1>
+            <div class="subtitle" style="color: #ffb703;">The Ultimate Apex Overlord</div>
+            <p id="winnerStats" style="margin-bottom: 25px; line-height: 1.6; font-size: 15px; color: #e2e8f0;"></p>
+            <button class="btn-win" onclick="startGame()">Evolve Again</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const startScreen = document.getElementById('startScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const winnerScreen = document.getElementById('winnerScreen');
+    const hud = document.getElementById('hud');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const livesDisplay = document.getElementById('livesDisplay');
+    const shieldDisplay = document.getElementById('shieldDisplay');
+    const sizeDisplay = document.getElementById('sizeDisplay');
+    const dashBarFill = document.getElementById('dashBarFill');
+    const finalScore = document.getElementById('finalScore');
+    const winnerStats = document.getElementById('winnerStats');
+    const warningAlert = document.getElementById('warningAlert');
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // AUDIO SYSTEM
+    let audioCtx;
+    let warningInterval;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            setupSeaAmbience();
+        }
+    }
+
+    function setupSeaAmbience() {
+        try {
+            const bufferSize = audioCtx.sampleRate * 2;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = (Math.random() * 2 - 1) * 0.15;
+            }
+            const noiseNode = audioCtx.createBufferSource();
+            noiseNode.buffer = buffer;
+            noiseNode.loop = true;
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(120, audioCtx.currentTime);
+            const seaGain = audioCtx.createGain();
+            seaGain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            noiseNode.connect(filter);
+            filter.connect(seaGain);
+            seaGain.connect(audioCtx.destination);
+            noiseNode.start();
+        } catch(e) {}
+    }
+
+    function playSound(type) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'eat') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.12);
+            gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.12);
+        } else if (type === 'hit') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(30, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+        } else if (type === 'shield') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+        } else if (type === 'siren') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(550, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(250, audioCtx.currentTime + 0.4);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+        } else if (type === 'dash') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.15);
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+        } else if (type === 'win') {
+            // Pemutar melodi kemenangan sederhana
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime + 0.1);
+            osc.frequency.setValueAtTime(500, audioCtx.currentTime + 0.2);
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+        }
+    }
+
+    // GAME VARIABLES
+    let gameActive = false;
+    let score = 0;
+    let lives = 3;
+    let targetX = window.innerWidth / 2;
+    let targetY = window.innerHeight / 2;
+    let player;
+    let enemies = [];
+    let planktons = [];
+    let particles = [];
+    let bubbles = [];
+    let seaweeds = [];
+    let spawnTimer = 0;
+    let planktonSpawnTimer = 0;
+    let globalWave = 0;
+    let bossSpawned = false;
+    let screenShake = 0;
+
+    function initEnvironment() {
+        seaweeds = [];
+        const count = Math.floor(canvas.width / 70);
+        for(let i=0; i<count; i++) {
+            seaweeds.push({
+                x: i * 75 + Math.random() * 30,
+                height: Math.random() * 120 + 80,
+                speed: Math.random() * 0.03 + 0.02,
+                offset: Math.random() * 100,
+                width: Math.random() * 10 + 8
+            });
+        }
+    }
+
+    window.addEventListener('mousemove', (e) => { targetX = e.clientX; targetY = e.clientY; });
+    function handleTouch(e) {
+        if(e.touches.length > 0) { targetX = e.touches[0].clientX; targetY = e.touches[0].clientY; }
+    }
+    canvas.addEventListener('touchstart', (e) => { handleTouch(e); triggerPlayerDash(); }, { passive: true });
+    canvas.addEventListener('touchmove', handleTouch, { passive: true });
+    window.addEventListener('mousedown', () => { triggerPlayerDash(); });
+
+    function triggerPlayerDash() {
+        if (!gameActive || !player || player.dashCooldown > 0) return;
+        player.isDashing = true;
+        player.dashTimer = 15;
+        player.dashCooldown = 90;
+        playSound('dash');
+        triggerExplosion(player.x, player.y, 'rgba(255,255,255,0.4)', 8);
+    }
+
+    function drawPremiumFish(ctx, x, y, radius, isFacingRight, type, bodyColor, finColor, wave) {
+        ctx.save();
+        ctx.translate(x, y);
+        if (!isFacingRight) ctx.scale(-1, 1);
+
+        if (type === 'player') {
+            if (radius > 55) {
+                ctx.beginPath();
+                ctx.moveTo(-radius * 0.5, -radius * 0.6);
+                ctx.quadraticCurveTo(-radius * 1.2, -radius * 1.6, -radius * 1.6, -radius * 0.5);
+                ctx.fillStyle = '#d90429';
+                ctx.fill();
+            }
+
+            ctx.save();
+            ctx.translate(-radius * 1.2, 0);
+            ctx.rotate(wave);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-radius * 1.3, -radius * 1.0);
+            ctx.lineTo(-radius * 0.7, 0);
+            ctx.lineTo(-radius * 1.3, radius * 1.0);
+            ctx.closePath();
+            ctx.fillStyle = finColor;
+            ctx.fill();
+            ctx.restore();
+
+            let fishGrad = ctx.createLinearGradient(0, -radius, 0, radius);
+            fishGrad.addColorStop(0, bodyColor);
+            if (radius >= 35) fishGrad.addColorStop(0.5, '#ef233c'); 
+            fishGrad.addColorStop(1, '#1e293b');
+            
+            ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.fillStyle = fishGrad; ctx.fill();
+            ctx.beginPath(); ctx.moveTo(0, -radius); ctx.lineTo(-radius * 1.3, 0); ctx.lineTo(0, radius); ctx.closePath(); ctx.fillStyle = fishGrad; ctx.fill();
+
+            if (radius >= 35) {
+                ctx.strokeStyle = '#00f5d4';
+                ctx.lineWidth = radius * 0.1;
+                ctx.beginPath(); ctx.arc(-radius*0.2, 0, radius*0.6, 2.9, 3.4); ctx.stroke();
+                ctx.beginPath(); ctx.arc(-radius*0.5, 0, radius*0.5, 2.9, 3.4); ctx.stroke();
+            }
+
+            ctx.beginPath(); ctx.arc(radius * 0.5, -radius * 0.3, radius * 0.22, 0, Math.PI * 2); ctx.fillStyle = "#ffffff"; ctx.fill();
+            ctx.beginPath(); ctx.arc(radius * 0.55, -radius * 0.3, radius * 0.12, 0, Math.PI * 2); ctx.fillStyle = "#000814"; ctx.fill();
+            ctx.beginPath(); ctx.arc(radius * 0.6, -radius * 0.35, radius * 0.04, 0, Math.PI * 2); ctx.fillStyle = "#fff"; ctx.fill(); 
+        } 
+        else if (type === 'shark' || type === 'boss') {
+            ctx.beginPath();
+            ctx.moveTo(-radius * 0.1, -radius * 0.5);
+            ctx.lineTo(-radius * 0.6, -radius * 1.5);
+            ctx.lineTo(-radius * 1.1, -radius * 0.4);
+            ctx.fillStyle = bodyColor;
+            ctx.fill();
+
+            ctx.save();
+            ctx.translate(-radius * 1.3, 0);
+            ctx.rotate(wave);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-radius * 1.3, -radius * 1.3);
+            ctx.lineTo(-radius * 0.8, 0);
+            ctx.lineTo(-radius * 1.1, radius * 1.0);
+            ctx.closePath();
+            ctx.fillStyle = finColor;
+            ctx.fill();
+            ctx.restore();
+
+            let sharkGrad = ctx.createLinearGradient(0, -radius, 0, radius);
+            sharkGrad.addColorStop(0, bodyColor);
+            sharkGrad.addColorStop(1, '#94a3b8');
+            ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.fillStyle = sharkGrad; ctx.fill();
+            ctx.beginPath(); ctx.moveTo(0, -radius); ctx.lineTo(-radius * 1.5, 0); ctx.lineTo(0, radius); ctx.closePath(); ctx.fillStyle = sharkGrad; ctx.fill();
+
+            ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 2;
+            for(let i=0; i<3; i++) { ctx.beginPath(); ctx.arc(-radius*0.2 - (i*4), 0, radius*0.5, 2.8, 3.5); ctx.stroke(); }
+            
+            ctx.beginPath(); ctx.arc(radius * 0.5, -radius * 0.3, radius * 0.14, 0, Math.PI * 2);
+            ctx.fillStyle = (type === 'boss') ? '#ff0000' : '#111'; ctx.fill();
+        } 
+        else {
+            ctx.save(); ctx.translate(-radius * 1.2, 0); ctx.rotate(wave * 1.2);
+            ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(-radius, -radius, -radius * 1.2, -radius * 0.8); ctx.quadraticCurveTo(-radius*0.5, 0, -radius * 1.2, radius * 0.8); ctx.closePath();
+            ctx.fillStyle = finColor; ctx.fill(); ctx.restore();
+
+            ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.fillStyle = bodyColor; ctx.fill();
+            ctx.beginPath(); ctx.moveTo(0, -radius); ctx.lineTo(-radius * 1.3, 0); ctx.lineTo(0, radius); ctx.closePath(); ctx.fillStyle = bodyColor; ctx.fill();
+
+            if(type === 'medium') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.fillRect(-radius * 0.3, -radius * 0.8, radius * 0.15, radius * 1.6);
+            }
+            ctx.beginPath(); ctx.arc(radius * 0.5, -radius * 0.25, radius * 0.2, 0, Math.PI * 2); ctx.fillStyle = "#fff"; ctx.fill();
+            ctx.beginPath(); ctx.arc(radius * 0.55, -radius * 0.25, radius * 0.1, 0, Math.PI * 2); ctx.fillStyle = "#000"; ctx.fill();
+        }
+
+        ctx.restore();
+    }
+
+    class Player {
+        constructor() {
+            this.x = canvas.width / 2;
+            this.y = canvas.height / 2;
+            this.radius = 18;
+            this.targetRadius = 18;
+            this.facingRight = true;
+            this.invulnerable = 0;
+            this.hasShield = false;
+            this.isDashing = false;
+            this.dashTimer = 0;
+            this.dashCooldown = 0;
+        }
+
+        update() {
+            let dx = targetX - this.x;
+            let dy = targetY - this.y;
+            
+            let speedFactor = this.isDashing ? 0.24 : 0.09;
+            this.x += dx * speedFactor;
+            this.y += dy * speedFactor;
+
+            if (dx > 2) this.facingRight = true;
+            if (dx < -2) this.facingRight = false;
+
+            if (this.radius < this.targetRadius) this.radius += 0.15;
+            if (this.invulnerable > 0) this.invulnerable--;
+            
+            if (this.dashTimer > 0) {
+                this.dashTimer--;
+                if(this.dashTimer === 0) this.isDashing = false;
+            }
+            if (this.dashCooldown > 0) {
+                this.dashCooldown--;
+                dashBarFill.style.width = `${((90 - this.dashCooldown) / 90) * 100}%`;
+            } else {
+                dashBarFill.style.width = '100%';
+            }
+
+            this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+            this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+        }
+
+        draw() {
+            if (this.invulnerable % 4 > 2) return;
+            let wave = Math.sin(globalWave * (this.isDashing ? 4 : 2.2)) * 0.25;
+            
+            if(this.isDashing) {
+                ctx.save(); ctx.globalAlpha = 0.3;
+                drawPremiumFish(ctx, this.x - (targetX-this.x)*0.1, this.y - (targetY-this.y)*0.1, this.radius, this.facingRight, 'player', '#ffbc42', '#d90429', wave);
+                ctx.restore();
+            }
+
+            drawPremiumFish(ctx, this.x, this.y, this.radius, this.facingRight, 'player', '#ffbc42', '#d90429', wave);
+
+            if (this.hasShield) {
+                ctx.save();
+                ctx.strokeStyle = `rgba(0, 245, 212, ${0.4 + Math.sin(globalWave * 3) * 0.2})`;
+                ctx.lineWidth = 4; ctx.shadowBlur = 15; ctx.shadowColor = '#00f5d4';
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius * 1.5, 0, Math.PI * 2); ctx.stroke();
+                ctx.restore();
+            }
+        }
+    }
+
+    class Enemy {
+        constructor(isBoss = false) {
+            this.isBoss = isBoss;
+            if (this.isBoss) {
+                this.radius = player.radius * 2.2;
+                this.type = 'boss';
+                this.bodyColor = '#1e293b'; this.finColor = '#0f172a';
+                this.speed = 3.6;
+            } else {
+                let roll = Math.random();
+                if (roll < 0.6) {
+                    this.radius = player.radius * (0.45 + Math.random() * 0.35);
+                    this.type = 'small'; this.bodyColor = '#2ecc71'; this.finColor = '#27ae60';
+                } else if (roll < 0.88) {
+                    this.radius = player.radius * (0.95 + Math.random() * 0.35);
+                    this.type = 'medium'; this.bodyColor = '#e67e22'; this.finColor = '#d35400';
+                } else {
+                    this.radius = player.radius * (1.4 + Math.random() * 0.8);
+                    this.type = 'shark'; this.bodyColor = '#475569'; this.finColor = '#334155';
+                }
+                this.speed = (Math.random() * 1.2 + 1.2) + (score * 0.005);
+            }
+
+            this.y = Math.random() * (canvas.height - 180) + 90;
+            this.waveOffset = Math.random() * 50;
+
+            if (Math.random() < 0.5) {
+                this.x = -this.radius * 3; this.dx = this.speed; this.facingRight = true;
+            } else {
+                this.x = canvas.width + this.radius * 3; this.dx = -this.speed; this.facingRight = false;
+            }
+        }
+
+        update() { this.x += this.dx; }
+        draw() {
+            let wave = Math.sin(globalWave * 1.6 + this.waveOffset) * 0.25;
+            ctx.save();
+            ctx.shadowBlur = this.isBoss ? 25 : 12;
+            ctx.shadowColor = (this.radius < player.radius) ? '#2ecc71' : '#ff4d4d';
+            drawPremiumFish(ctx, this.x, this.y, this.radius, this.facingRight, this.type, this.bodyColor, this.finColor, wave);
+            ctx.restore();
+        }
+    }
+
+    class Plankton {
+        constructor() {
+            this.x = (Math.random() < 0.5) ? -30 : canvas.width + 30;
+            this.dx = (this.x < 0) ? (Math.random() * 0.6 + 0.6) : -(Math.random() * 0.6 + 0.6);
+            this.y = Math.random() * (canvas.height - 100) + 50;
+            this.radius = Math.random() * 3 + 3;
+            this.yPulse = Math.random() * 10;
+        }
+        update() {
+            this.x += this.dx;
+            this.y += Math.sin(globalWave + this.yPulse) * 0.4;
+        }
+        draw() {
+            ctx.save(); ctx.shadowBlur = 8; ctx.shadowColor = '#00f5d4';
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0, 245, 212, 0.85)'; ctx.fill(); ctx.restore();
+        }
+    }
+
+    class Bubble {
+        constructor() {
+            this.x = Math.random() * canvas.width; this.y = canvas.height + 20;
+            this.radius = Math.random() * 3 + 1; this.speed = Math.random() * 0.7 + 0.3;
+        }
+        update() { this.y -= this.speed; }
+        draw() {
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; ctx.fill();
+        }
+    }
+
+    class Particle {
+        constructor(x, y, color) {
+            this.x = x; this.y = y; this.color = color; this.radius = Math.random() * 2.5 + 1;
+            this.dx = (Math.random() - 0.5) * 4; this.dy = (Math.random() - 0.5) * 4; this.alpha = 1;
+        }
+        update() { this.x += this.dx; this.y += this.dy; this.alpha -= 0.03; }
+        draw() {
+            ctx.save(); ctx.globalAlpha = this.alpha; ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); ctx.restore();
+        }
+    }
+
+    function drawDynamicBackground() {
+        let depthOffset = Math.min(60, score * 0.2);
+        let oceanGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        oceanGrad.addColorStop(0, `rgb(0, ${Math.max(10, 53 - depthOffset)}, ${Math.max(30, 84 - depthOffset)})`);
+        oceanGrad.addColorStop(0.6, `rgb(0, ${Math.max(5, 29 - depthOffset)}, ${Math.max(15, 61 - depthOffset)})`);
+        oceanGrad.addColorStop(1, '#000814');
+        ctx.fillStyle = oceanGrad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(0, 119, 182, 0.18)';
+        for(let i=0; i<seaweeds.length; i++) {
+            let sw = seaweeds[i];
+            let sway = Math.sin(globalWave * sw.speed + sw.offset) * 15;
+            ctx.beginPath();
+            ctx.moveTo(sw.x, canvas.height);
+            ctx.quadraticCurveTo(sw.x + sway, canvas.height - sw.height * 0.5, sw.x + sway * 0.6, canvas.height - sw.height);
+            ctx.lineTo(sw.x + sw.width + sway * 0.6, canvas.height - sw.height);
+            ctx.quadraticCurveTo(sw.x + sw.width + sway, canvas.height - sw.height * 0.5, sw.x + sw.width, canvas.height);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    function updateHUD() {
+        scoreDisplay.textContent = score;
+        sizeDisplay.textContent = `${Math.floor(player.radius)}cm`;
+        let hearts = '';
+        for (let i = 0; i < lives; i++) hearts += '❤️';
+        livesDisplay.innerHTML = hearts || '💀';
+
+        if(player.hasShield) {
+            shieldDisplay.textContent = "ACTIVE"; shieldDisplay.className = "shield-active";
+        } else {
+            shieldDisplay.textContent = "INACTIVE"; shieldDisplay.className = "";
+        }
+    }
+
+    function triggerExplosion(x, y, color, count = 10) {
+        for (let i = 0; i < count; i++) particles.push(new Particle(x, y, color));
+    }
+
+    function triggerBossEvent() {
+        bossSpawned = true;
+        warningAlert.classList.remove('hidden');
+        screenShake = 40;
+        
+        let count = 0;
+        warningInterval = setInterval(() => {
+            if (!gameActive) { clearInterval(warningInterval); return; }
+            playSound('siren');
+            screenShake = 12;
+            if (navigator.vibrate) navigator.vibrate(200);
+            
+            count++;
+            if (count >= 7) {
+                clearInterval(warningInterval);
+                warningAlert.classList.add('hidden');
+                if(gameActive) enemies.push(new Enemy(true));
+            }
+        }, 500);
+    }
+
+    // NEW TRIGGER: VICTORY CONDITION HANDLER
+    function triggerVictory() {
+        gameActive = false;
+        hud.classList.add('hidden');
+        winnerScreen.classList.remove('hidden');
+        playSound('win');
+        
+        // Memunculkan kembang api partikel emas di layar kemenangan
+        for(let j=0; j<40; j++) {
+            particles.push(new Particle(canvas.width/2 + (Math.random()-0.5)*300, canvas.height/2 + (Math.random()-0.5)*200, '#ffb703'));
+        }
+        
+        winnerStats.innerHTML = `You have conquered the ocean ecosystem!<br>Final Mutation Size: <strong style="color:#ffb703">${Math.floor(player.radius)}cm</strong><br>Biomass Mastery: <strong style="color:#2ecc71">${score} / 1000 Pts</strong>`;
+    }
+
+    function startGame() {
+        initAudio();
+        initEnvironment();
+        if(warningInterval) clearInterval(warningInterval);
+        startScreen.classList.add('hidden');
+        gameOverScreen.classList.add('hidden');
+        winnerScreen.classList.add('hidden'); // Sembunyikan winner screen saat reset
+        warningAlert.classList.add('hidden');
+        hud.classList.remove('hidden');
+        
+        lives = 3; score = 0; screenShake = 0;
+        enemies = []; planktons = []; particles = []; bubbles = [];
+        bossSpawned = false;
+        player = new Player();
+        targetX = window.innerWidth / 2; targetY = window.innerHeight / 2;
+        gameActive = true;
+        updateHUD();
+        animate();
+    }
+
+    function handlePlayerDeath() {
+        if (player.hasShield) {
+            player.hasShield = false; player.invulnerable = 60;
+            screenShake = 15; playSound('hit');
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+            updateHUD(); return;
+        }
+
+        lives--; screenShake = 25;
+        updateHUD(); playSound('hit');
+        if (navigator.vibrate) navigator.vibrate(400);
+
+        if (lives <= 0) {
+            gameActive = false;
+            hud.classList.add('hidden');
+            gameOverScreen.classList.remove('hidden');
+            finalScore.innerHTML = `Evolution Terminated! Final Size: <strong style="color:#00b4d8">${Math.floor(player.radius)}cm</strong><br>Total Biomass: <strong style="color:#2ecc71">${score} Pts</strong>`;
+        } else {
+            player.invulnerable = 100;
+            player.targetRadius = Math.max(16, player.targetRadius * 0.95);
+            enemies = [];
+        }
+    }
+
+    function animate() {
+        if (!gameActive) return;
+        requestAnimationFrame(animate);
+        
+        ctx.save();
+        if (screenShake > 0) {
+            let dx = (Math.random() - 0.5) * screenShake;
+            let dy = (Math.random() - 0.5) * screenShake;
+            ctx.translate(dx, dy);
+            screenShake *= 0.9;
+            if(screenShake < 0.5) screenShake = 0;
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        globalWave += 0.15;
+
+        drawDynamicBackground();
+
+        if (Math.random() < 0.03) bubbles.push(new Bubble());
+        for (let i = bubbles.length - 1; i >= 0; i--) {
+            bubbles[i].update(); bubbles[i].draw();
+            if (bubbles[i].y < -20) bubbles.splice(i, 1);
+        }
+
+        player.update(); player.draw();
+
+        spawnTimer++;
+        if (spawnTimer >= 18) { 
+            if(enemies.length < 7) { 
+                enemies.push(new Enemy());
+            }
+            spawnTimer = 0;
+        }
+
+        planktonSpawnTimer++;
+        if (planktonSpawnTimer >= 250) { 
+            for(let k=0; k<5; k++) {
+                setTimeout(() => { if(gameActive) planktons.push(new Plankton()); }, k * 300);
+            }
+            planktonSpawnTimer = 0;
+        }
+
+        if (score >= 200 && !bossSpawned) triggerBossEvent();
+
+        for (let i = planktons.length - 1; i >= 0; i--) {
+            let p = planktons[i]; p.update(); p.draw();
+            let dx = player.x - p.x; let dy = player.y - p.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+
+            if (dist < player.radius + p.radius) {
+                triggerExplosion(p.x, p.y, '#00f5d4', 5);
+                playSound('shield'); player.hasShield = true;
+                updateHUD(); planktons.splice(i, 1); continue;
+            }
+            if (p.x < -40 || p.x > canvas.width + 40) planktons.splice(i, 1);
+        }
+
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            let enemy = enemies[i]; enemy.update(); enemy.draw();
+            let dx = player.x - enemy.x; let dy = player.y - enemy.y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < (player.radius + enemy.radius) * 0.83) {
+                if (player.radius > enemy.radius) {
+                    triggerExplosion(enemy.x, enemy.y, enemy.bodyColor);
+                    playSound('eat');
+                    score += Math.floor(enemy.radius * 0.5) + 5;
+                    player.targetRadius += enemy.radius * 0.07;
+                    updateHUD(); 
+
+                    // CHECK SCORE LIMIT FOR VICTORY (1000 POINTS)
+                    if (score >= 1000) {
+                        triggerVictory();
+                        break;
+                    }
+
+                    enemies.splice(i, 1); continue;
+                } else if (player.invulnerable === 0) {
+                    triggerExplosion(player.x, player.y, '#ff3333', 15);
+                    handlePlayerDeath(); break;
+                }
+            }
+            if (enemy.dx > 0 && enemy.x > canvas.width + enemy.radius * 3) enemies.splice(i, 1);
+            else if (enemy.dx < 0 && enemy.x < -enemy.radius * 3) enemies.splice(i, 1);
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+            particles[i].update(); particles[i].draw();
+            if (particles[i].alpha <= 0) particles.splice(i, 1);
+        }
+        
+        ctx.restore();
+    }
+</script>
+
+</body>
+</html>
