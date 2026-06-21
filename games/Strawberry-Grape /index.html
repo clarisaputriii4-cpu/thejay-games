@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ultimate Berry Farmer - Strawberry & Grape Edition</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            background-color: #0b0f19;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 430px;
+            height: 100vh;
+            max-height: 850px;
+            background: #1b4332; 
+            box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 4px solid #1e293b;
+            border-radius: 24px;
+        }
+        
+        /* Game Screens */
+        .game-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 15, 30, 0.98);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 30;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            color: #ffffff;
+            text-align: center;
+        }
+        .game-screen h1 {
+            font-size: 34px;
+            font-weight: 900;
+            color: #ff4343;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+            text-shadow: 0 0 20px rgba(255, 67, 67, 0.5);
+        }
+        .game-screen h3 {
+            font-size: 12px;
+            color: #ffb700;
+            letter-spacing: 4px;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+        .info-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 18px;
+            padding: 22px;
+            width: 100%;
+            max-width: 350px;
+            text-align: left;
+            margin-bottom: 35px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #e2e8f0;
+        }
+        .info-title {
+            font-size: 11px;
+            font-weight: 900;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+        }
+        .action-btn {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 16px 50px;
+            font-size: 15px;
+            font-weight: 800;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 6px 25px rgba(34, 197, 94, 0.45);
+            transition: transform 0.1s;
+            letter-spacing: 1.5px;
+        }
+        .action-btn:active { transform: scale(0.96); }
+
+        /* HUD */
+        #header-ui {
+            width: 100%;
+            padding: 18px 22px;
+            background: #0f172a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            z-index: 10;
+            border-bottom: 3px solid #1e293b;
+        }
+        .stats-box { display: flex; flex-direction: column; }
+        .stats-label { font-size: 11px; font-weight: 800; color: #475569; letter-spacing: 1px; }
+        .stats-val { font-size: 24px; font-weight: 900; }
+        #gold-val { color: #ffb700; }
+        #score-val { color: #38bdf8; }
+
+        /* Canvas */
+        #farmCanvas {
+            flex: 1;
+            width: 100%;
+            display: block;
+        }
+
+        /* Toolbar Controls */
+        #toolbar-ui {
+            width: 100%;
+            padding: 16px 12px;
+            background: #0f172a;
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+            z-index: 10;
+            border-top: 3px solid #1e293b;
+        }
+        .tool-btn {
+            flex: 1;
+            background: #1e293b;
+            border: 2px solid #334155;
+            color: #94a3b8;
+            padding: 12px 2px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            transition: all 0.15s ease;
+        }
+        .tool-btn span { font-size: 24px; }
+        .tool-btn.active {
+            background: #22c55e;
+            border-color: #4ade80;
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+            transform: translateY(-3px);
+        }
+        .tool-cost { font-size: 10px; color: #ffb700; font-weight: bold; }
+        .hide { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- 🎮 1. START SCREEN -->
+        <div id="start-screen" class="game-screen">
+            <h1>BERRY & GRAPE</h1>
+            <h3>FRUIT TYCOON</h3>
+            
+            <div class="info-card">
+                <div style="margin-bottom: 14px;">
+                    <div class="info-title">🎮 HOW TO PLAY</div>
+                    1. Use <strong>PLANT</strong> tool to sow random seeds <strong>(-10 Gold)</strong>.<br>
+                    2. Check the soil to see the seeds! Use <strong>WATER</strong> to sprout them.<br>
+                    3. Grab <strong>HARVEST</strong> once Strawberries 🍓 or Grapes 🍇 are ripe <strong>(+30 Gold)</strong>.
+                </div>
+                <div>
+                    <div class="info-title" style="color: #ff4343;">🚨 GAME OVER CONDITIONS</div>
+                    • <strong>Bankruptcy:</strong> Gold drops below 10 AND you have no growing/ripe crops left.<br>
+                    • <strong>Soft Lock:</strong> Your Gold is too low to clean rotted crops (-5G).
+                </div>
+            </div>
+
+            <button class="action-btn" id="start-btn">START FARMING</button>
+        </div>
+
+        <!-- 💀 2. GAME OVER SCREEN -->
+        <div id="gameover-screen" class="game-screen hide">
+            <h1>GAME OVER</h1>
+            <h3 style="color: #ff4343;">FARM BANKRUPTCY</h3>
+            
+            <div class="info-card" style="text-align: center; margin-bottom: 30px;">
+                <span class="info-title">FINAL FARMING SCORE</span>
+                <div id="final-score" style="font-size: 56px; font-weight: 900; color: #38bdf8; margin: 8px 0;">0</div>
+                <p id="gameover-reason" style="font-size: 13px; color: #94a3b8;">Reason of defeat...</p>
+            </div>
+
+            <button class="action-btn" id="retry-btn" style="background: #ffb700; color: #0f172a; box-shadow: 0 6px 25px rgba(255, 183, 0, 0.45);">RESTART FARM</button>
+        </div>
+
+        <!-- Top Statistics Display -->
+        <div id="header-ui">
+            <div class="stats-box">
+                <div class="stats-label">💰 GOLD</div>
+                <div class="stats-val" id="gold-val">100</div>
+            </div>
+            <div class="stats-box" style="align-items: flex-end;">
+                <div class="stats-label">📈 SCORE</div>
+                <div class="stats-val" id="score-val">0</div>
+            </div>
+        </div>
+
+        <!-- Farming Canvas -->
+        <canvas id="farmCanvas"></canvas>
+
+        <!-- Toolbar Controls Layout -->
+        <div id="toolbar-ui">
+            <button class="tool-btn active" id="btn-hoe" onclick="selectTool('hoe')">
+                <span>🪓</span>PLANT
+                <div class="tool-cost">-10G</div>
+            </button>
+            <button class="tool-btn" id="btn-water" onclick="selectTool('water')">
+                <span>💧</span>WATER
+                <div class="tool-cost" style="color:#60a5fa;">FREE</div>
+            </button>
+            <button class="tool-btn" id="btn-harvest" onclick="selectTool('harvest')">
+                <span>🧺</span>HARVEST
+                <div class="tool-cost" style="color:#4ade80;">+30G</div>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('farmCanvas');
+        const ctx = canvas.getContext('2d');
+        const goldVal = document.getElementById('gold-val');
+        const scoreVal = document.getElementById('score-val');
+        const startScreen = document.getElementById('start-screen');
+        const gameoverScreen = document.getElementById('gameover-screen');
+        const gameoverReason = document.getElementById('gameover-reason');
+        const finalScore = document.getElementById('final-score');
+        const startBtn = document.getElementById('start-btn');
+        const retryBtn = document.getElementById('retry-btn');
+
+        let logicalWidth = 0; let logicalHeight = 0;
+        let currentTool = 'hoe';
+        let gold = 100; let score = 0;
+        let isGameActive = false;
+
+        const cols = 3; const rows = 4;
+        let plots = [];
+        let particles = []; 
+
+        const totalGrowthDuration = 20 * 60; 
+        const rotDuration = 12 * 60; 
+
+        // Sound FX Engine
+        let audioCtx = null;
+        function playSynthesizedSound(freq, type, duration, volume = 0.08) {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration);
+                osc.start(); osc.stop(audioCtx.currentTime + duration);
+            } catch(e){}
+        }
+
+        // Particle System
+        function createParticles(x, y, color, type, count) {
+            for (let i = 0; i < count; i++) {
+                let angle = Math.random() * Math.PI * 2;
+                let speed = Math.random() * 3 + 1;
+                
+                particles.push({
+                    x: x, 
+                    y: y,
+                    vx: type === 'seed' ? (Math.random() - 0.5) * 4 : Math.cos(angle) * speed,
+                    vy: type === 'seed' ? (Math.random() * -3 - 2) : (type === 'water' ? (Math.random() * 2 + 2) : Math.sin(angle) * speed),
+                    r: type === 'seed' ? Math.random() * 1.5 + 1.2 : Math.random() * 3 + 2,
+                    color: color,
+                    alpha: 1,
+                    decay: type === 'seed' ? 0.02 : (Math.random() * 0.02 + 0.015),
+                    type: type,
+                    gravity: type === 'seed' ? 0.16 : 0
+                });
+            }
+        }
+
+        function initGrid() {
+            plots = [];
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    plots.push({
+                        row: r, col: c,
+                        state: 'empty', 
+                        growthTimer: 0, rotTimer: 0,
+                        plantType: 'strawberry' // 'strawberry' or 'grape'
+                    });
+                }
+            }
+        }
+
+        function resize() {
+            logicalWidth = canvas.offsetWidth; logicalHeight = canvas.offsetHeight;
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = logicalWidth * dpr; canvas.height = logicalHeight * dpr;
+            ctx.scale(dpr, dpr);
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function selectTool(toolName) {
+            if(!isGameActive) return;
+            currentTool = toolName;
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${toolName}`).classList.add('active');
+        }
+
+        canvas.addEventListener('click', function(e) {
+            if(!isGameActive) return;
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            const plotW = (logicalWidth - 30) / cols;
+            const plotH = (logicalHeight - 30) / rows;
+            const startX = 15; const startY = 15;
+
+            plots.forEach(plot => {
+                const pX = startX + plot.col * plotW;
+                const pY = startY + plot.row * plotH;
+                const midX = pX + (plotW - 10) / 2;
+                const midY = pY + (plotH - 10) / 2;
+
+                if (clickX >= pX && clickX <= pX + plotW - 8 && clickY >= pY && clickY <= pY + plotH - 8) {
+                    handlePlotInteraction(plot, midX, midY);
+                }
+            });
+        });
+
+        function handlePlotInteraction(plot, midX, midY) {
+            // 1. PLANT
+            if (currentTool === 'hoe' && plot.state === 'empty') {
+                if (gold >= 10) {
+                    gold -= 10;
+                    plot.state = 'plowed'; 
+                    plot.plantType = Math.random() > 0.5 ? 'strawberry' : 'grape';
+                    
+                    createParticles(midX, midY, '#854d0e', 'dust', 8);
+                    // Warna biji disesuaikan: Stroberi biji kuning muda, Anggur biji krem tua
+                    let seedColor = plot.plantType === 'strawberry' ? '#fef08a' : '#fed7aa';
+                    createParticles(midX, midY - 5, seedColor, 'seed', 18); 
+                    
+                    playSynthesizedSound(220, 'triangle', 0.15, 0.12);
+                    updateUI();
+                    checkGameOverCondition();
+                }
+            }
+            // 2. WATER
+            else if (currentTool === 'water' && plot.state === 'plowed') {
+                plot.state = 'growing';
+                plot.growthTimer = totalGrowthDuration;
+                createParticles(midX, midY - 30, '#60a5fa', 'water', 25);
+                playSynthesizedSound(580, 'sine', 0.3, 0.08);
+            }
+            // 3. HARVEST OR CLEAN
+            else if (currentTool === 'harvest') {
+                if (plot.state === 'ripe') {
+                    plot.state = 'empty';
+                    gold += 30; score += 5; 
+                    let sparkleColor = plot.plantType === 'strawberry' ? '#ef4444' : '#a855f7';
+                    createParticles(midX, midY, sparkleColor, 'sparkle', 20);
+                    playSynthesizedSound(880, 'sine', 0.1, 0.15);
+                    setTimeout(() => playSynthesizedSound(1320, 'sine', 0.15, 0.1), 60);
+                    updateUI();
+                } else if (plot.state === 'rotten') {
+                    if (gold >= 5) {
+                        gold -= 5;
+                        plot.state = 'empty';
+                        createParticles(midX, midY, '#475569', 'dust', 10);
+                        playSynthesizedSound(150, 'sawtooth', 0.2, 0.1);
+                        updateUI();
+                        checkGameOverCondition();
+                    }
+                }
+            }
+        }
+
+        function updateUI() {
+            goldVal.innerText = gold;
+            scoreVal.innerText = score;
+        }
+
+        function checkGameOverCondition() {
+            let hasPotentialCrops = plots.some(p => p.state === 'plowed' || p.state === 'growing' || p.state === 'ripe');
+            if (gold < 10 && !hasPotentialCrops) {
+                triggerGameOver("You ran out of Gold and have no active crops left to harvest!");
+                return;
+            }
+
+            let rottenCount = plots.filter(p => p.state === 'rotten').length;
+            let emptyCount = plots.filter(p => p.state === 'empty').length;
+            if (gold < 5 && (rottenCount + emptyCount === plots.length) && rottenCount > 0) {
+                triggerGameOver("Soft-lock! Lahan penuh buah busuk dan emasmu tidak cukup untuk membersihkannya (-5G).");
+                return;
+            }
+        }
+
+        function triggerGameOver(reasonText) {
+            isGameActive = false;
+            finalScore.innerText = score;
+            gameoverReason.innerText = reasonText;
+            gameoverScreen.classList.remove('hide');
+            playSynthesizedSound(180, 'sawtooth', 0.5, 0.15);
+            setTimeout(() => playSynthesizedSound(120, 'sawtooth', 0.6, 0.15), 200);
+        }
+
+        function gameLoop() {
+            if (isGameActive) {
+                plots.forEach(plot => {
+                    if (plot.state === 'growing') {
+                        if (plot.growthTimer > 0) {
+                            plot.growthTimer--;
+                        } else {
+                            plot.state = 'ripe';
+                            plot.rotTimer = rotDuration; 
+                            playSynthesizedSound(440, 'sine', 0.1, 0.05);
+                        }
+                    }
+                    else if (plot.state === 'ripe') {
+                        if (plot.rotTimer > 0) {
+                            plot.rotTimer--;
+                        } else {
+                            plot.state = 'rotten'; 
+                            playSynthesizedSound(110, 'sawtooth', 0.3, 0.1);
+                            checkGameOverCondition();
+                        }
+                    }
+                });
+            }
+
+            particles.forEach(p => {
+                p.vy += p.gravity; p.x += p.vx; p.y += p.vy; p.alpha -= p.decay;
+            });
+            particles = particles.filter(p => p.alpha > 0);
+
+            // --- CANVAS RENDER ---
+            ctx.clearRect(0, 0, logicalWidth, logicalHeight);
+            let groundGrad = ctx.createLinearGradient(0, 0, 0, logicalHeight);
+            groundGrad.addColorStop(0, '#132a13'); groundGrad.addColorStop(1, '#1b4332');
+            ctx.fillStyle = groundGrad; ctx.fillRect(0, 0, logicalWidth, logicalHeight);
+
+            const plotW = (logicalWidth - 30) / cols;
+            const plotH = (logicalHeight - 30) / rows;
+            const startX = 15; const startY = 15;
+
+            plots.forEach(plot => {
+                const pX = startX + plot.col * plotW;
+                const pY = startY + plot.row * plotH;
+                const w = plotW - 10; const h = plotH - 10;
+
+                ctx.save();
+                ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(0,0,0,0.2)';
+
+                if (plot.state === 'empty') {
+                    ctx.fillStyle = '#2d6a4f';
+                    ctx.beginPath(); ctx.roundRect(pX, pY, w, h, 18); ctx.fill();
+                } 
+                else if (plot.state === 'plowed') {
+                    ctx.fillStyle = '#7f5539';
+                    ctx.beginPath(); ctx.roundRect(pX, pY, w, h, 18); ctx.fill();
+                    ctx.strokeStyle = '#9c6644'; ctx.lineWidth = 2.5;
+                    ctx.beginPath(); ctx.moveTo(pX + 12, pY + h/2); ctx.lineTo(pX + w - 12, pY + h/2); ctx.stroke();
+
+                    // Bibit terlihat di atas tanah
+                    ctx.fillStyle = plot.plantType === 'strawberry' ? '#fef08a' : '#fed7aa';
+                    ctx.beginPath(); ctx.ellipse(pX + w/2 - 14, pY + h/2 - 8, 2, 3, Math.PI/4, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.ellipse(pX + w/2 + 12, pY + h/2 + 6, 2, 3, -Math.PI/6, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.ellipse(pX + w/2 + 1, pY + h/2 - 4, 2, 3, Math.PI/3, 0, Math.PI*2); ctx.fill();
+                } 
+                else if (plot.state === 'growing') {
+                    ctx.fillStyle = '#432818';
+                    ctx.beginPath(); ctx.roundRect(pX, pY, w, h, 18); ctx.fill();
+                    
+                    let elapsed = totalGrowthDuration - plot.growthTimer;
+                    let progress = (elapsed / totalGrowthDuration) * 100;
+
+                    ctx.save();
+                    ctx.translate(pX + w/2, pY + h/2 + 6);
+                    ctx.fillStyle = '#a7c957';
+                    if (progress < 50) { // Tunas Awal
+                        ctx.beginPath(); ctx.ellipse(-5, -6, 4, 6, -Math.PI/4, 0, Math.PI*2); ctx.fill();
+                        ctx.beginPath(); ctx.ellipse(5, -6, 4, 6, Math.PI/4, 0, Math.PI*2); ctx.fill();
+                    } else { // Tanaman Rimbun Tengah
+                        ctx.fillStyle = '#38b000';
+                        ctx.beginPath(); ctx.arc(-6, -11, 8, 0, Math.PI*2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(6, -11, 8, 0, Math.PI*2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(0, -17, 9, 0, Math.PI*2); ctx.fill();
+                    }
+                    ctx.restore();
+
+                    // TIMER DIAL
+                    let secs = Math.ceil(plot.growthTimer / 60);
+                    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+                    ctx.beginPath(); ctx.arc(pX + w - 22, pY + 22, 13, 0, Math.PI*2); ctx.fill();
+                    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(pX + w - 22, pY + 22, 10, -Math.PI/2, (-Math.PI/2) + (Math.PI * 2 * (plot.growthTimer / totalGrowthDuration)), false);
+                    ctx.stroke();
+                    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center';
+                    ctx.fillText(`${secs}s`, pX + w - 22, pY + 25);
+                } 
+                else if (plot.state === 'ripe') {
+                    ctx.fillStyle = '#311e14';
+                    ctx.beginPath(); ctx.roundRect(pX, pY, w, h, 18); ctx.fill();
+
+                    ctx.save();
+                    ctx.translate(pX + w/2, pY + h/2);
+                    ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(0,0,0,0.4)';
+                    
+                    if (plot.plantType === 'strawberry') {
+                        // 🍓 RENDERING STROBERI MIRIP ASLI
+                        let sGrad = ctx.createRadialGradient(-3, -6, 2, 0, 0, 18);
+                        sGrad.addColorStop(0, '#ff4d4d'); sGrad.addColorStop(0.6, '#cc0022'); sGrad.addColorStop(1, '#66000c');
+                        ctx.fillStyle = sGrad;
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(-15, -10);
+                        ctx.bezierCurveTo(-16, -24, 16, -24, 15, -10);
+                        ctx.bezierCurveTo(15, 4, 6, 16, 0, 20);
+                        ctx.bezierCurveTo(-6, 16, -15, 4, -15, -10);
+                        ctx.closePath(); ctx.fill();
+
+                        // Detail Bintik Biji Kuning Stroberi
+                        ctx.fillStyle = '#fef08a';
+                        let seedPos = [[-7,-12], [7,-12], [0, -7], [-6,-2], [6,-2], [-3,4], [3,4], [0,11]];
+                        seedPos.forEach(pos => { ctx.fillRect(pos[0], pos[1], 1.5, 2.5); });
+
+                        // Kelopak Daun Hijau di Atas Kepala Stroberi
+                        ctx.fillStyle = '#22c55e';
+                        ctx.beginPath();
+                        ctx.moveTo(-14, -17); ctx.lineTo(0, -10); ctx.lineTo(14, -17);
+                        ctx.lineTo(6, -21); ctx.lineTo(0, -14); ctx.lineTo(-6, -21);
+                        ctx.closePath(); ctx.fill();
+                    } 
+                    else {
+                        // 🍇 RENDERING SEGEROMBOLAN ANGGUR (CLUSTER GRAPHICS)
+                        ctx.save();
+                        // Batang coklat mini
+                        ctx.strokeStyle = '#854d0e'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+                        ctx.beginPath(); ctx.moveTo(0, -18); ctx.lineTo(0, -12); ctx.stroke();
+                        
+                        // Fungsi helper buat bikin bulatan anggur glossy berkilau
+                        function drawGrapeBerry(bx, by) {
+                            let gGrad = ctx.createRadialGradient(bx - 2, by - 2, 1, bx, by, 7);
+                            gGrad.addColorStop(0, '#d8b4fe'); gGrad.addColorStop(0.4, '#7c3aed'); gGrad.addColorStop(1, '#3b0764');
+                            ctx.fillStyle = gGrad;
+                            ctx.beginPath(); ctx.arc(bx, by, 6.5, 0, Math.PI*2); ctx.fill();
+                        }
+
+                        // Layer Atas (3 buah)
+                        drawGrapeBerry(-10, -8); drawGrapeBerry(0, -9); drawGrapeBerry(10, -8);
+                        // Layer Tengah (2 buah)
+                        drawGrapeBerry(-5, 0); drawGrapeBerry(5, 0);
+                        // Layer Bawah Meruncing (1 buah)
+                        drawGrapeBerry(0, 8);
+                        ctx.restore();
+                    }
+                    ctx.restore();
+
+                    // ROT TIMER DISPLAY
+                    let rSecs = Math.ceil(plot.rotTimer / 60);
+                    ctx.fillStyle = 'rgba(239,68,68,0.85)';
+                    ctx.fillRect(pX + 6, pY + 6, 42, 16);
+                    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center';
+                    ctx.fillText(`ROT: ${rSecs}s`, pX + 27, pY + 17);
+                } 
+                else if (plot.state === 'rotten') {
+                    // Tampilan Tanaman Membusuk Layu
+                    ctx.fillStyle = '#1e293b';
+                    ctx.beginPath(); ctx.roundRect(pX, pY, w, h, 18); ctx.fill();
+                    ctx.fillStyle = '#475569'; ctx.font = '22px sans-serif'; ctx.textAlign = 'center';
+                    ctx.fillText("🥀", pX + w/2, pY + h/2 + 8);
+                    ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center';
+                    ctx.fillText("CLEAN (-5G)", pX + w/2, pY + 18);
+                }
+                ctx.restore();
+            });
+
+            // Update & Draw Particles Flight Physics
+            particles.forEach(p => {
+                ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
+                ctx.beginPath();
+                if(p.type === 'seed') ctx.ellipse(p.x, p.y, p.r, p.r * 1.5, Math.PI / 4, 0, Math.PI * 2);
+                else ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fill(); ctx.restore();
+            });
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startNewGame() {
+            gold = 100; score = 0; currentTool = 'hoe';
+            updateUI(); initGrid(); particles = [];
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn-hoe').classList.add('active');
+            isGameActive = true;
+        }
+
+        startBtn.addEventListener('click', () => { startScreen.classList.add('hide'); startNewGame(); });
+        retryBtn.addEventListener('click', () => { gameoverScreen.classList.add('hide'); startNewGame(); });
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
