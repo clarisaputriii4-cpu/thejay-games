@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jay Time Winder</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        body {
+            background-color: #05030a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            color: #fff;
+        }
+
+        .responsive-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .game-container {
+            position: relative;
+            padding: 8px;
+            background: linear-gradient(135deg, #7209b7, #f72585, #4cc9f0, #ffee32, #00f5d4);
+            border-radius: 24px;
+            box-shadow: 0 0 60px rgba(247, 37, 133, 0.4);
+            transform-origin: center center;
+        }
+
+        .game-frame {
+            position: relative;
+            width: 1024px;
+            height: 576px;
+            background-color: #110c1f;
+            border-radius: 18px;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 6, 20, 0.96);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            text-align: center;
+            padding: 40px;
+            backdrop-filter: blur(6px);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        h1 {
+            font-size: 3.8rem;
+            font-weight: 900;
+            color: #4cc9f0;
+            text-shadow: 0 0 20px rgba(76, 201, 240, 0.6), 0 0 40px rgba(247, 37, 133, 0.4);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #b5a2da;
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+        }
+
+        .how-to-play-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 95%;
+            max-width: 850px;
+            margin-bottom: 35px;
+        }
+
+        .control-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(114, 9, 183, 0.5);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: left;
+        }
+
+        .control-card h3 {
+            color: #4cc9f0;
+            margin-bottom: 12px;
+            font-size: 1.3rem;
+            border-bottom: 1px solid rgba(76, 201, 240, 0.2);
+            padding-bottom: 8px;
+        }
+
+        .control-card li {
+            font-size: 1rem;
+            margin-bottom: 8px;
+            color: #e0aaff;
+            line-height: 1.5;
+            list-style: none;
+        }
+
+        .control-card b {
+            color: #fff;
+            background: rgba(247, 37, 133, 0.25);
+            padding: 2px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(247, 37, 133, 0.4);
+        }
+
+        .mission-box {
+            grid-column: span 2;
+            background: rgba(0, 245, 212, 0.05);
+            border: 1px dashed #00f5d4;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            font-size: 1.05rem;
+            color: #00f5d4;
+            line-height: 1.5;
+        }
+
+        .btn {
+            background: linear-gradient(90deg, #7209b7, #f72585);
+            border: none;
+            color: white;
+            padding: 16px 60px;
+            font-size: 1.25rem;
+            font-weight: bold;
+            border-radius: 35px;
+            cursor: pointer;
+            box-shadow: 0 0 25px rgba(247, 37, 133, 0.5);
+            text-transform: uppercase;
+            transition: all 0.2s;
+            letter-spacing: 2px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 40px rgba(247, 37, 133, 0.8);
+        }
+
+        .score-board {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #e0aaff;
+        }
+        
+        .score-highlight {
+            color: #ffee32;
+            font-weight: bold;
+            font-size: 2.2rem;
+            text-shadow: 0 0 15px rgba(255, 238, 50, 0.4);
+        }
+
+        .mobile-controls {
+            position: absolute;
+            bottom: 25px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 40px;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 20px;
+            pointer-events: auto;
+        }
+
+        .m-btn {
+            width: 70px;
+            height: 70px;
+            background: rgba(17, 12, 31, 0.85);
+            border: 2px solid #4cc9f0;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.8rem;
+            color: #4cc9f0;
+            box-shadow: 0 0 20px rgba(76, 201, 240, 0.15);
+            backdrop-filter: blur(2px);
+        }
+
+        .m-btn:active {
+            background: #4cc9f0;
+            color: #110c1f;
+            transform: scale(0.9);
+        }
+
+        .rewind-btn {
+            width: 110px;
+            border-radius: 18px;
+            border-color: #f72585;
+            color: #f72585;
+            font-size: 1rem;
+            text-transform: uppercase;
+        }
+
+        .rewind-btn.active {
+            background: #f72585;
+            color: #fff;
+            box-shadow: 0 0 25px #f72585;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="responsive-wrapper">
+        <div class="game-container" id="gameContainer">
+            <div class="game-frame">
+                
+                <div id="startScreen" class="overlay">
+                    <h1>Jay Time Winder</h1>
+                    <p class="subtitle">Temporal Multiverse Simulation</p>
+                    
+                    <div class="how-to-play-container">
+                        <div class="control-card">
+                            <h3>💻 DESKTOP</h3>
+                            <ul>
+                                <li>• Move Axis: <b>A</b> / <b>D</b> or <b>←</b> / <b>→</b></li>
+                                <li>• Double Jump: <b>W</b> / <b>Spacebar</b></li>
+                                <li>• Reverse Time: Hold <b>R</b> Key</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="control-card">
+                            <h3>📱 MOBILE INTERFACE</h3>
+                            <ul>
+                                <li>• Movement Direction: Tap <b>←</b> and <b>→</b></li>
+                                <li>• Airborne Expansion: Tap <b>↑</b> Arrow Button</li>
+                                <li>• Quantum Inversion: Hold <b>REWIND</b></li>
+                            </ul>
+                        </div>
+
+                        <div class="mission-box">
+                            ⛓️ <b>MISSION:</b> Dapatkan <b>+50 poin</b> setiap kali mengambil koin Core di setiap sektor. Skor dimulai dari 0 dan tidak akan berkurang sendiri saat diam. Lewati 5 dimensi dan temukan portal akhir untuk menang!
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px; color: #b5a2da; font-size: 1.1rem;" id="menuHighScore">
+                        Universal High Score: <span style="color: #ffee32; font-weight: bold;">0</span>
+                    </div>
+                    <button class="btn" id="startBtn">Initiate Warp Link</button>
+                </div>
+
+                <div id="winScreen" class="overlay hidden">
+                    <h1 style="color: #ffee32; text-shadow: 0 0 25px #ffee32, 0 0 50px #f72585;">👑 CONGRATS WINNER! 👑</h1>
+                    <p style="color: #00f5d4; font-size: 1.3rem; margin-bottom: 25px; font-weight: bold; letter-spacing: 1px;">Multiverse Paradox Completely Restored!</p>
+                    
+                    <div class="score-board">
+                        <p>Total Metric Record Score: <span class="score-highlight" id="finalScore">0</span></p>
+                        <p style="font-size: 1.1rem; margin-top: 8px;">Universal Best Record: <span style="color:#4cc9f0;" id="highScoreText">0</span></p>
+                    </div>
+
+                    <button class="btn" id="restartBtn">Re-Enter Loop</button>
+                </div>
+
+                <canvas id="gameCanvas" width="1024" height="576"></canvas>
+
+                <div id="mobileControls" class="mobile-controls hidden">
+                    <div class="control-group">
+                        <div class="m-btn" id="btnLeft">←</div>
+                        <div class="m-btn" id="btnRight">→</div>
+                    </div>
+                    <div class="control-group">
+                        <div class="m-btn rewind-btn" id="btnRewind">Rewind</div>
+                        <div class="m-btn" id="btnJump">↑</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameContainer = document.getElementById('gameContainer');
+
+        const startScreen = document.getElementById('startScreen');
+        const winScreen = document.getElementById('winScreen');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const mobileControls = document.getElementById('mobileControls');
+        const menuHighScore = document.getElementById('menuHighScore');
+
+        function resizeGame() {
+            const baseWidth = 1024;
+            const baseHeight = 576;
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+
+            let scale = Math.min(windowWidth / baseWidth, windowHeight / baseHeight);
+            if (scale > 1) scale = 1;
+
+            gameContainer.style.transform = `scale(${scale})`;
+        }
+
+        window.addEventListener('resize', resizeGame);
+        window.addEventListener('load', resizeGame);
+        resizeGame();
+
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            mobileControls.classList.remove('hidden');
+        }
+
+        let savedHighScore = parseInt(localStorage.getItem('jayMultiverse_hiScore')) || 0;
+        
+        if (savedHighScore > 250) {
+            localStorage.setItem('jayMultiverse_hiScore', 0);
+            savedHighScore = 0;
+        }
+        menuHighScore.innerHTML = `Universal High Score: <span style="color: #ffee32; font-weight: bold;">${savedHighScore}</span>`;
+
+        let audioCtx = null;
+        function playTone(freq, type, duration) {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type; osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + duration);
+            } catch(e){}
+        }
+
+        let gameActive = false;
+        let isRewinding = false;
+        let timeHistory = [];
+        const MAX_HISTORY = 400; 
+
+        let score = 0; 
+        let particles = [];
+        let currentDimension = 1; 
+        let dimensionFlash = 0;   
+
+        const input = { left: false, right: false, jump: false, rewind: false };
+        let lastJumpState = false; 
+        const gravity = 0.45;
+        
+        let player = {
+            x: 80, y: 400, vx: 0, vy: 0,
+            width: 30, height: 45, 
+            isGrounded: false,
+            jumpCount: 0,
+            maxJumps: 2,
+            isDead: false,
+            facing: 'right'
+        };
+
+        let crystal = { x: 900, y: 160, radius: 12, pulse: 0 };
+        let portal = { x: 880, y: 400, width: 55, height: 85, active: false, pulse: 0 };
+
+        const dimensionsData = {
+            1: {
+                name: "NEON VOID", backgroundColor: "#110c1f", borderColor: "#7209b7", crystalColor: "#ffee32",
+                playerStart: { x: 80, y: 400 },
+                corePos: { x: 900, y: 160 },
+                platforms: [
+                    { x: 0, y: 500, width: 1024, height: 76 }, 
+                    { x: 0, y: 0, width: 24, height: 576 }, { x: 1000, y: 0, width: 24, height: 576 },  
+                    { x: 160, y: 410, width: 180, height: 20 },
+                    { x: 420, y: 320, width: 180, height: 20 },
+                    { x: 680, y: 240, width: 180, height: 20 },
+                    { x: 860, y: 220, width: 140, height: 20 }
+                ],
+                spikes: [
+                    { x: 230, y: 410, count: 1 }, { x: 500, y: 320, count: 1 },
+                    { x: 360, y: 500, count: 4 }, { x: 620, y: 500, count: 4 }
+                ]
+            },
+            2: {
+                name: "QUANTUM CORE", backgroundColor: "#04141c", borderColor: "#00f5d4", crystalColor: "#ffee32",
+                playerStart: { x: 900, y: 400 }, 
+                corePos: { x: 120, y: 150 },
+                platforms: [
+                    { x: 0, y: 500, width: 1024, height: 76 }, 
+                    { x: 0, y: 0, width: 24, height: 576 }, { x: 1000, y: 0, width: 24, height: 576 },  
+                    { x: 720, y: 400, width: 180, height: 20 },
+                    { x: 480, y: 310, width: 180, height: 20 },
+                    { x: 240, y: 220, width: 180, height: 20 },
+                    { x: 50, y: 220, width: 130, height: 20 }
+                ],
+                spikes: [
+                    { x: 790, y: 400, count: 1 }, { x: 550, y: 310, count: 1 },
+                    { x: 200, y: 500, count: 3 }, { x: 440, y: 500, count: 3 }
+                ]
+            },
+            3: {
+                name: "SOLAR FLARE", backgroundColor: "#1c0b02", borderColor: "#f77f00", crystalColor: "#ffee32",
+                playerStart: { x: 80, y: 400 },
+                corePos: { x: 500, y: 120 },
+                platforms: [
+                    { x: 0, y: 500, width: 1024, height: 76 }, 
+                    { x: 0, y: 0, width: 24, height: 576 }, { x: 1000, y: 0, width: 24, height: 576 },  
+                    { x: 150, y: 390, width: 150, height: 20 },
+                    { x: 380, y: 310, width: 250, height: 20 }, 
+                    { x: 720, y: 390, width: 150, height: 20 },
+                    { x: 440, y: 190, width: 120, height: 20 }
+                ],
+                spikes: [
+                    { x: 410, y: 310, count: 1 }, { x: 580, y: 310, count: 1 },
+                    { x: 310, y: 500, count: 6 }
+                ]
+            },
+            4: {
+                name: "SUB-ZERO MATRIX", backgroundColor: "#020f21", borderColor: "#4cc9f0", crystalColor: "#ffee32",
+                playerStart: { x: 900, y: 400 },
+                corePos: { x: 880, y: 150 },
+                platforms: [
+                    { x: 0, y: 500, width: 1024, height: 76 }, 
+                    { x: 0, y: 0, width: 24, height: 576 }, { x: 1000, y: 0, width: 24, height: 576 },  
+                    { x: 740, y: 390, width: 160, height: 20 },
+                    { x: 460, y: 310, width: 200, height: 20 },
+                    { x: 180, y: 240, width: 200, height: 20 },
+                    { x: 460, y: 170, width: 160, height: 20 },
+                    { x: 740, y: 220, width: 180, height: 20 }
+                ],
+                spikes: [
+                    { x: 260, y: 240, count: 1 }, { x: 520, y: 170, count: 1 },
+                    { x: 400, y: 500, count: 4 }
+                ]
+            },
+            5: {
+                name: "HYPER-DRIVE CIRCUIT", backgroundColor: "#011c0f", borderColor: "#00f5d4", crystalColor: "#ffee32",
+                playerStart: { x: 80, y: 400 },
+                corePos: { x: 490, y: 160 },
+                platforms: [
+                    { x: 0, y: 500, width: 1024, height: 76 }, 
+                    { x: 0, y: 0, width: 24, height: 576 }, { x: 1000, y: 0, width: 24, height: 576 },  
+                    { x: 140, y: 400, width: 150, height: 20 },
+                    { x: 340, y: 320, width: 150, height: 20 },
+                    { x: 540, y: 320, width: 150, height: 20 },
+                    { x: 740, y: 400, width: 150, height: 20 },
+                    { x: 440, y: 230, width: 130, height: 20 }
+                ],
+                spikes: [
+                    { x: 190, y: 400, count: 1 }, { x: 790, y: 400, count: 1 },
+                    { x: 300, y: 500, count: 3 }, { x: 640, y: 500, count: 3 }
+                ]
+            }
+        };
+
+        let activePlatforms = [];
+        let activeSpikes = [];
+
+        function createParticle(x, y, color) {
+            particles.push({
+                x: x, y: y,
+                vx: (Math.random() - 0.5) * 3,
+                vy: (Math.random() - 0.5) * 3,
+                radius: Math.random() * 3.5 + 1,
+                alpha: 1,
+                color: color
+            });
+        }
+
+        function saveFrame() {
+            if (isRewinding) return;
+            timeHistory.push({
+                playerX: player.x, playerY: player.y,
+                playerVx: player.vx, playerVy: player.vy,
+                playerDead: player.isDead, playerFacing: player.facing,
+                playerJumpCount: player.jumpCount,
+                portalActive: portal.active,
+                currentDimension: currentDimension
+            });
+            if (timeHistory.length > MAX_HISTORY) timeHistory.shift();
+        }
+
+        function rewindFrame() {
+            if (timeHistory.length > 0) {
+                const prev = timeHistory.pop();
+                player.x = prev.playerX; player.y = prev.playerY;
+                player.vx = prev.playerVx; player.vy = prev.playerVy;
+                player.isDead = prev.playerDead; player.facing = prev.playerFacing;
+                player.jumpCount = prev.playerJumpCount;
+                portal.active = prev.portalActive;
+                
+                if (currentDimension !== prev.currentDimension) {
+                    shiftDimension(prev.currentDimension, false);
+                }
+
+                if (Math.random() < 0.4) createParticle(player.x + player.width/2, player.y + player.height/2, '#f72585');
+                if (timeHistory.length % 6 === 0) playTone(550, 'triangle', 0.02);
+            } else {
+                input.rewind = false;
+                isRewinding = false;
+            }
+        }
+
+        function shiftDimension(dimId, setPlayerPosition = true) {
+            currentDimension = dimId;
+            const targetData = dimensionsData[dimId];
+            activePlatforms = [...targetData.platforms];
+            activeSpikes = [...targetData.spikes];
+            crystal.x = targetData.corePos.x;
+            crystal.y = targetData.corePos.y;
+            
+            if (setPlayerPosition) {
+                player.x = targetData.playerStart.x;
+                player.y = targetData.playerStart.y;
+                player.vx = 0; player.vy = 0;
+            }
+            dimensionFlash = 1.0; 
+        }
+
+        function initGame() {
+            player.isDead = false; player.facing = 'right'; player.jumpCount = 0;
+            portal.active = false;
+            timeHistory = []; isRewinding = false; particles = [];
+            score = 0; 
+            dimensionFlash = 0;
+            shiftDimension(1);
+            gameActive = true;
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        function checkCollision(r1, r2) {
+            return r1.x < r2.x + r2.width && r1.x + r1.width > r2.x &&
+                   r1.y < r2.y + r2.height && r1.y + r1.height > r2.y;
+        }
+
+        function update() {
+            if (!gameActive) return;
+
+            isRewinding = input.rewind;
+            if (isRewinding) { rewindFrame(); return; }
+            if (player.isDead) return;
+
+            saveFrame();
+
+            if (dimensionFlash > 0) dimensionFlash -= 0.04;
+
+            if (input.left) { player.vx = -4.8; player.facing = 'left'; }
+            else if (input.right) { player.vx = 4.8; player.facing = 'right'; }
+            else player.vx = 0;
+
+            if (input.jump && !lastJumpState) {
+                if (player.isGrounded) {
+                    player.vy = -10.2; player.isGrounded = false; player.jumpCount = 1;
+                    playTone(320, 'square', 0.07);
+                    for(let i=0; i<6; i++) createParticle(player.x + player.width/2, player.y + player.height, '#4cc9f0');
+                } else if (player.jumpCount < player.maxJumps) {
+                    player.vy = -9.2; player.jumpCount++;
+                    playTone(450, 'square', 0.08);
+                    for(let i=0; i<8; i++) createParticle(player.x + player.width/2, player.y + player.height/2, '#00f5d4');
+                }
+            }
+            lastJumpState = input.jump;
+
+            player.vy += gravity;
+
+            player.x += player.vx;
+            activePlatforms.forEach(p => {
+                if (checkCollision(player, p)) {
+                    if (player.vx > 0) player.x = p.x - player.width;
+                    if (player.vx < 0) player.x = p.x + p.width;
+                }
+            });
+
+            player.y += player.vy;
+            player.isGrounded = false;
+            activePlatforms.forEach(p => {
+                if (checkCollision(player, p)) {
+                    if (player.vy > 0) { 
+                        player.y = p.y - player.height; player.vy = 0; player.isGrounded = true;
+                        player.jumpCount = 0; 
+                    } else if (player.vy < 0) { 
+                        player.y = p.y + p.height; player.vy = 0;
+                    }
+                }
+            });
+
+            if(Math.abs(player.vx) > 0 && player.isGrounded && Math.random() < 0.25) {
+                createParticle(player.x + player.width/2, player.y + player.height, 'rgba(255,255,255,0.3)');
+            }
+            
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx; p.y += p.vy; p.alpha -= 0.03;
+                if (p.alpha <= 0) particles.splice(i, 1);
+            }
+
+            if (!portal.active) {
+                let dist = Math.hypot((player.x + player.width/2) - crystal.x, (player.y + player.height/2) - crystal.y);
+                if (dist < crystal.radius + 18) {
+                    score += 50; 
+                    playTone(520, 'sine', 0.08);
+                    
+                    for(let i=0; i<25; i++) createParticle(crystal.x, crystal.y, '#ffee32');
+
+                    if (currentDimension < 5) {
+                        setTimeout(() => playTone(780, 'sine', 0.15), 60);
+                        shiftDimension(currentDimension + 1);
+                    } else {
+                        portal.active = true;
+                        playTone(950, 'sine', 0.3);
+                    }
+                }
+            }
+
+            activeSpikes.forEach(s => {
+                let sWidth = s.count * 16;
+                let sRect = { x: s.x, y: s.y - 10, width: sWidth, height: 10 };
+                if (checkCollision(player, sRect)) {
+                    if (!player.isDead) {
+                        player.isDead = true;
+                        playTone(100, 'sawtooth', 0.4);
+                    }
+                }
+            });
+
+            if (portal.active && currentDimension === 5 && checkCollision(player, portal)) {
+                gameActive = false;
+                let finalCalculatedScore = Math.round(score);
+                
+                let currentHi = localStorage.getItem('jayMultiverse_hiScore') || 0;
+                if (finalCalculatedScore > parseInt(currentHi)) {
+                    localStorage.setItem('jayMultiverse_hiScore', finalCalculatedScore);
+                    currentHi = finalCalculatedScore;
+                }
+
+                document.getElementById('finalScore').innerText = finalCalculatedScore;
+                document.getElementById('highScoreText').innerText = currentHi;
+                
+                menuHighScore.innerHTML = `Universal High Score: <span style="color: #ffee32; font-weight: bold;">${currentHi}</span>`;
+                
+                playTone(600, 'sine', 0.15);
+                setTimeout(() => playTone(1100, 'sine', 0.4), 100);
+                winScreen.classList.remove('hidden');
+            }
+
+            crystal.pulse += 0.07;
+            portal.pulse += 0.05;
+        }
+
+        function draw() {
+            let dimEnv = dimensionsData[currentDimension];
+            
+            ctx.fillStyle = dimEnv.backgroundColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            activePlatforms.forEach(p => {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+                ctx.fillRect(p.x, p.y, p.width, p.height);
+                ctx.strokeStyle = dimEnv.borderColor; ctx.lineWidth = 3;
+                ctx.strokeRect(p.x, p.y, p.width, p.height);
+            });
+
+            ctx.fillStyle = '#f72585';
+            activeSpikes.forEach(s => {
+                for (let i = 0; i < s.count; i++) {
+                    let sx = s.x + (i * 16);
+                    ctx.beginPath(); ctx.moveTo(sx, s.y);
+                    ctx.lineTo(sx + 8, s.y - 12); ctx.lineTo(sx + 16, s.y);
+                    ctx.fill();
+                }
+            });
+
+            particles.forEach(p => {
+                ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2); ctx.fill();
+                ctx.restore();
+            });
+
+            if (!portal.active) {
+                ctx.save();
+                let sizeChange = Math.sin(crystal.pulse) * 2.5;
+                ctx.shadowColor = dimEnv.crystalColor; ctx.shadowBlur = 20;
+                ctx.fillStyle = dimEnv.crystalColor;
+                ctx.beginPath();
+                ctx.arc(crystal.x, crystal.y, crystal.radius + sizeChange, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            if (portal.active && currentDimension === 5) {
+                ctx.save();
+                let pBlur = 20 + Math.sin(portal.pulse) * 10;
+                ctx.shadowColor = '#4cc9f0'; ctx.shadowBlur = pBlur;
+                ctx.fillStyle = 'rgba(76, 201, 240, 0.25)';
+                ctx.strokeStyle = '#4cc9f0'; ctx.lineWidth = 4;
+                ctx.fillRect(portal.x, portal.y, portal.width, portal.height);
+                ctx.strokeRect(portal.x, portal.y, portal.width, portal.height);
+                ctx.restore();
+            }
+
+            ctx.save();
+            if (player.isDead) {
+                ctx.fillStyle = '#f72585'; ctx.shadowColor = '#f72585';
+            } else {
+                ctx.fillStyle = '#4cc9f0'; ctx.shadowColor = '#4cc9f0';
+            }
+            ctx.shadowBlur = isRewinding ? 30 : 15;
+
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            ctx.fillStyle = dimEnv.backgroundColor;
+            ctx.fillRect(player.x + 3, player.y + 5, player.width - 6, 12);
+            
+            ctx.fillStyle = player.isDead ? '#f72585' : '#ffee32';
+            if (player.facing === 'right') {
+                ctx.fillRect(player.x + player.width - 11, player.y + 9, 7, 5);
+            } else {
+                ctx.fillRect(player.x + 4, player.y + 9, 7, 5);
+            }
+            ctx.fillStyle = 'rgba(255,255,255,0.35)';
+            ctx.fillRect(player.x + 5, player.y + 24, player.width - 10, 4);
+            ctx.fillRect(player.x + 5, player.y + 32, player.width - 10, 4);
+            ctx.restore();
+
+            let historyPercent = timeHistory.length / MAX_HISTORY;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.fillRect(30, 25, 200, 12);
+            ctx.fillStyle = isRewinding ? '#f72585' : '#4cc9f0';
+            ctx.fillRect(30, 25, 200 * historyPercent, 12);
+            
+            ctx.font = "bold 11px sans-serif"; ctx.fillStyle = '#b5a2da';
+            ctx.fillText("TIME REWIND MATRIX SECTOR", 30, 52);
+
+            ctx.font = "bold 14px Arial"; ctx.fillStyle = dimEnv.borderColor;
+            ctx.fillText(`ZONE: 0${currentDimension} // SEC: ${dimEnv.name}`, 30, 78);
+
+            ctx.font = "bold 22px Courier New"; ctx.fillStyle = '#ffee32';
+            ctx.fillText(`SCORE: ${Math.round(score)}`, canvas.width - 200, 38);
+
+            if (isRewinding) {
+                ctx.fillStyle = 'rgba(247, 37, 133, 0.15)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.font = "bold 24px Arial"; ctx.fillStyle = '#f72585';
+                ctx.fillText("◀◀ QUANTUM TIMELINE REWIND", canvas.width / 2 - 170, 50);
+            }
+
+            if (player.isDead && !isRewinding) {
+                ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.font = "bold 18px sans-serif"; ctx.fillStyle = '#f72585';
+                ctx.textAlign = "center";
+                ctx.fillText("TIMELINE CORRUPTED (CRITICAL ANOMALOUS OVERLOAD)", canvas.width / 2, canvas.height / 2 - 15);
+                ctx.fillStyle = '#fff';
+                ctx.font = "15px sans-serif";
+                ctx.fillText("Hold [R] or mobile [REWIND] button to roll back macro universe states", canvas.width / 2, canvas.height / 2 + 20);
+                ctx.textAlign = "left"; 
+            }
+
+            if (dimensionFlash > 0) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${dimensionFlash})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function gameLoop() {
+            update(); draw(); 
+            if(gameActive) requestAnimationFrame(gameLoop);
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'a' || e.key === 'ArrowLeft') input.left = true;
+            if (e.key === 'd' || e.key === 'ArrowRight') input.right = true;
+            if (e.key === 'w' || e.key === ' ' || e.key === 'ArrowUp') input.jump = true;
+            if (e.key === 'r' || e.key === 'R') input.rewind = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'a' || e.key === 'ArrowLeft') input.left = false;
+            if (e.key === 'd' || e.key === 'ArrowRight') input.right = false;
+            if (e.key === 'w' || e.key === ' ' || e.key === 'ArrowUp') input.jump = false;
+            if (e.key === 'r' || e.key === 'R') input.rewind = false;
+        });
+
+        const btnLeft = document.getElementById('btnLeft');
+        const btnRight = document.getElementById('btnRight');
+        const btnJump = document.getElementById('btnJump');
+        const btnRewind = document.getElementById('btnRewind');
+
+        function addControlListeners(el, action, startValue, endValue) {
+            el.addEventListener('touchstart', (e) => { e.preventDefault(); input[action] = startValue; });
+            el.addEventListener('touchend', (e) => { e.preventDefault(); input[action] = endValue; });
+        }
+
+        addControlListeners(btnLeft, 'left', true, false);
+        addControlListeners(btnRight, 'right', true, false);
+        addControlListeners(btnJump, 'jump', true, false);
+        addControlListeners(btnRewind, 'rewind', true, false);
+
+        startBtn.addEventListener('click', () => {
+            startScreen.classList.add('hidden');
+            initGame();
+        });
+
+        restartBtn.addEventListener('click', () => {
+            winScreen.classList.add('hidden');
+            initGame();
+        });
+
+    </script>
+</body>
+</html>
